@@ -116,8 +116,10 @@ namespace Archer.DataSecurity.Filter
         public bool IsConst(out Type type)
         {
             string strText = Text.Trim();
-            if (strText.Substring(0, 1) == "'" &&
-                strText.Substring(strText.Length - 1, 1) == "'")
+            if ((strText.Substring(0, 1) == "'" &&
+                strText.Substring(strText.Length - 1, 1) == "'") ||
+                (strText.Substring(0, 1) == "\"" &&
+                strText.Substring(strText.Length - 1, 1) == "\""))
             {
                 // It's a string const
                 type = typeof (string);
@@ -188,8 +190,7 @@ namespace Archer.DataSecurity.Filter
             string str = Text.Trim();
             if (vt == typeof (string))
             {
-                str = str.TrimStart('\'');
-                str = str.TrimEnd('\'');
+                str = str.Substring(1, str.Length - 2);
                 return str;
             }
             else if (vt == typeof (bool))
@@ -393,16 +394,11 @@ namespace Archer.DataSecurity.Filter
             Type type;
             if (opr.IsConst(out type))
             {
-                if (type == typeof (double)) return new Constant<double>(opr.GetConst());
-                if (type == typeof (long)) return new Constant<long>(opr.GetConst());
-                if (type == typeof (int)) return new Constant<int>(opr.GetConst());
-                if (type == typeof (bool)) return new Constant<bool>(opr.GetConst());
-                if (type == typeof (string)) return new Constant<string>(opr.GetConst());
-                throw new NotSupportedException("Not supported constant!");
+                return new Constant(opr.GetConst());
             }
             else
             {
-                return new Variable<object> {Name = opr.Text};
+                return new Variable(type, opr.Text);
             }
         }
 

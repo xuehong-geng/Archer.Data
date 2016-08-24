@@ -50,15 +50,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Filter\Expression.cs" />
+    <Compile Include="Filter\IExpressionTranslator.cs" />
     <Compile Include="Filter\Parser.cs" />
+    <Compile Include="Service\DomainTypeMap.cs" />
+    <Compile Include="Store\ConfigDbContext.cs" />
     <Compile Include="Model\Domain.cs" />
     <Compile Include="Model\Rule.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Service\DataSecurityManager.cs" />
     <Compile Include="Service\EntityFrameworkExtensions.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Store\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />

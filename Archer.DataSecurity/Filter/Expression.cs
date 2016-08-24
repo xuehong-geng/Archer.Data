@@ -21,6 +21,7 @@ namespace Archer.DataSecurity.Filter
         }
 
         public abstract Expression ToLinq(ToLinqContext ctx);
+        public abstract void Translate(IExpressionTranslator translator);
     }
 
     public abstract class Binary : Item
@@ -34,6 +35,15 @@ namespace Archer.DataSecurity.Filter
                 throw new InvalidOperationException("Left expression of binary operatoin is null!");
             if (Right == null)
                 throw new InvalidOperationException("Right expression of binary operation is null!");
+        }
+
+        public override void Translate(IExpressionTranslator translator)
+        {
+            if (translator != null)
+            {
+                Left = translator.Translate(Left);
+                Right = translator.Translate(Right);
+            }
         }
     }
 
@@ -79,11 +89,23 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public abstract class Set<T> : Item
+    public abstract class Set : Item
     {
-        private Collection<ValueOrReference<T>> _items = new Collection<ValueOrReference<T>>();
+        private Collection<ValueOrReference> _items = new Collection<ValueOrReference>();
 
-        public Collection<ValueOrReference<T>> Items { get { return _items; } }
+        public Collection<ValueOrReference> Items { get { return _items; } }
+
+        public Type Type { get; set; }
+
+        public Set()
+        {
+            Type = typeof(object);
+        }
+
+        public Set(Type type)
+        {
+            Type = type;
+        }
 
         public override string ToString()
         {
@@ -114,13 +136,25 @@ namespace Archer.DataSecurity.Filter
 
         public override Expression ToLinq(ToLinqContext ctx)
         {
-            return Expression.NewArrayInit(typeof (T), _items.Select(a => a.ToLinq(ctx)));
+            return Expression.NewArrayInit(Type, _items.Select(a => a.ToLinq(ctx)));
+        }
+
+        public override void Translate(IExpressionTranslator translator)
+        {
+            if (translator == null)
+                return;
+            var newCol = new Collection<ValueOrReference>();
+            foreach (var item in _items)
+            {
+                newCol.Add(translator.Translate(item) as ValueOrReference);
+            }
+            _items = newCol;
         }
     }
 
-    public class In<T> : Set<T>
+    public class In : Set
     {
-        public ValueOrReference<T> Operand { get; set; }
+        public ValueOrReference Operand { get; set; }
 
         public override string ToString()
         {
@@ -131,13 +165,21 @@ namespace Archer.DataSecurity.Filter
         {
             ThrowIfInvalid();
             var array = base.ToLinq(ctx);
-            var arrType = typeof (T[]);
+            var arrType = Type;
             var memberType = arrType.GetMethod("Contains");
             return Expression.Call(array, memberType, Operand.ToLinq(ctx));
         }
+
+        public override void Translate(IExpressionTranslator translator)
+        {
+            if (translator == null)
+                return;
+            base.Translate(translator);
+            Operand = translator.Translate(Operand) as ValueOrReference;
+        }
     }
 
-    public class NotIn<T> : Set<T>
+    public class NotIn : Set
     {
         public Item Operand { get; set; }
 
@@ -150,36 +192,54 @@ namespace Archer.DataSecurity.Filter
         {
             ThrowIfInvalid();
             var array = base.ToLinq(ctx);
-            var arrType = typeof(T[]);
+            var arrType = Type;
             var memberType = arrType.GetMethod("Contains");
             var call = Expression.Call(array, memberType, Operand.ToLinq(ctx));
             return Expression.Not(call);
         }
-    }
 
-    public abstract class ValueOrReference<TV> : Item
-    {
-        public Type Type { get { return typeof (TV); } }
-    }
-
-    public class Constant<TV> : ValueOrReference<TV>
-    {
-        public TV Value { get; set; }
-
-        public Constant(TV val)
+        public override void Translate(IExpressionTranslator translator)
         {
-            Value = val;
+            if (translator == null)
+                return;
+            base.Translate(translator);
+            Operand = translator.Translate(Operand) as ValueOrReference;
         }
+    }
+
+    public abstract class ValueOrReference : Item
+    {
+        public Type Type { get; set; }
+
+        public ValueOrReference()
+        {
+            Type = typeof (object);
+        }
+
+        public ValueOrReference(Type type)
+        {
+            Type = type;
+        }
+
+        public override void Translate(IExpressionTranslator translator)
+        {
+            throw new InvalidOperationException("Value and Reference must not be translated by itself!");
+        }
+    }
+
+    public class Constant : ValueOrReference
+    {
+        public object Value { get; set; }
 
         public Constant(object val)
         {
-            Value = (TV)Convert.ChangeType(val, typeof (TV));
-        } 
+            Value = Convert.ChangeType(val, Type);
+        }
 
         public override string ToString()
         {
             if (Value is string)
-                return "\"" + Value + "\"";
+                return "'" + Value + "'";
             return Value.ToString();
         }
 
@@ -189,10 +249,16 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class Variable<TV> : ValueOrReference<TV>
+    public class Variable : ValueOrReference
     {
         public string Name { get; set; }
-        public TV Value { get; set; }
+        public object Value { get; set; }
+
+        public Variable(Type type, string name)
+            : base(type)
+        {
+            Name = name;
+        }
 
         public override string ToString()
         {
