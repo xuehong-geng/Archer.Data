@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Archer.DataSecurity.Expression
+namespace Archer.DataSecurity.Filter
 {
     internal class Constants
     {
@@ -256,9 +255,9 @@ namespace Archer.DataSecurity.Expression
         }
     }
 
-    public class Parser
+    public static class Parser
     {
-        public Token GetNext(string exp, int iTotal, ref int iPos)
+        private static Token GetNext(string exp, int iTotal, ref int iPos)
         {
             if (iPos >= iTotal)
                 return null;
@@ -302,51 +301,11 @@ namespace Archer.DataSecurity.Expression
                 return new Operand(strItem);
         }
 
-        public List<Token> Parse(string exp)
-        {
-            List<Token> stack = new List<Token>();
-            List<Token> expression = new List<Token>();
-            int iPos = 0;
-            if (string.IsNullOrEmpty(exp))
-                return null;
-            int iTotal = exp.Length;
-            // Pick operand and operator and construct infix expression
-            while (iPos < iTotal)
-            {
-                // Find next item
-                Token pItem = GetNext(exp, iTotal, ref iPos);
-                if (pItem == null)
-                    break;
-                if (pItem is Operand)
-                {   // Next one is a operand
-                    if (stack.Count > 0 && stack[stack.Count-1] is Operand)
-                    {   // Last one is a operand too, syntax failed
-                        return null;
-                    }
-                }
-                else if (pItem is Operator)
-                {   // Next one is a operator
-                    //if(Stack.GetCount() > 0 && Stack.GetTail()->IsKindOf(RUNTIME_CLASS(COperator)))
-                    //{	// Last one is a operator too, syntax failed
-                    //	delete pItem;
-                    //	return FALSE;
-                    //}
-                }
-                stack.Add(pItem);
-            }
-            // Convert infix express to suffix express
-            if (!Infix2Suffix(stack, ref expression))
-            {
-                return null;
-            }
-
-            return expression;
-        }
-
-        public bool Infix2Suffix(List<Token> Infix, ref List<Token> Suffix)
+        private static List<Token> Infix2Suffix(List<Token> Infix)
         {
             // a + b - (c + d - 9)/23 * ((32 + c) * (33 - b))
             // ab+cd+9-23/32c+*33b-*-
+            List<Token> Suffix = new List<Token>();
             List<Operator> oprStack = new List<Operator>();
             while (Infix.Count > 0)
             {
@@ -373,13 +332,13 @@ namespace Archer.DataSecurity.Expression
                             oprStack.RemoveAt(oprStack.Count-1);
                         }
                         if (pLast == null)
-                            return false; // Syntax error
+                            throw new InvalidExpressionException("Right bracket has no left bracket or content!");
                         while (pLast.Text != Constants.OPR_LB)
                         {
                             Suffix.Add(pLast);
                             if (oprStack.Count < 1)
                             {   // End before match a LB, syntax error
-                                return false;
+                                throw new InvalidExpressionException("Left bracket was missing!");
                             }
                             pLast = oprStack.Last();
                             oprStack.RemoveAt(oprStack.Count - 1);
@@ -412,10 +371,10 @@ namespace Archer.DataSecurity.Expression
                 oprStack.RemoveAt(oprStack.Count-1);
             }
 
-            return true;
+            return Suffix;
         }
 
-        protected Binary CreateOperator(Operator opr)
+        private static Binary CreateOperator(Operator opr)
         {
             if (opr.Text == Constants.OPR_EQUAL)
                 return new Equals();
@@ -429,7 +388,7 @@ namespace Archer.DataSecurity.Expression
             }
         }
 
-        protected Item CreateOperand(Operand opr)
+        private static Item CreateOperand(Operand opr)
         {
             Type type;
             if (opr.IsConst(out type))
@@ -447,7 +406,7 @@ namespace Archer.DataSecurity.Expression
             }
         }
 
-        public Item CreateExpressionTree(List<Token> suffix)
+        public static Item CreateExpressionTree(List<Token> suffix)
         {
             Item tree = null;
             Stack<Binary> stack = new Stack<Binary>();
@@ -505,6 +464,48 @@ namespace Archer.DataSecurity.Expression
                 }
             }
             return tree;
+        }
+
+        public static List<Token> Parse(string exp)
+        {
+            List<Token> stack = new List<Token>();
+            int iPos = 0;
+            if (string.IsNullOrEmpty(exp))
+                throw new ArgumentNullException(nameof(exp));
+            int iTotal = exp.Length;
+            // Pick operand and operator and construct infix expression
+            while (iPos < iTotal)
+            {
+                // Find next item
+                Token pItem = GetNext(exp, iTotal, ref iPos);
+                if (pItem == null)
+                    break;
+                if (pItem is Operand)
+                {   // Next one is a operand
+                    if (stack.Count > 0 && stack[stack.Count-1] is Operand)
+                    {   // Last one is a operand too, syntax failed
+                        throw new InvalidExpressionException(
+                            string.Format("Operator missing between two operands! Last operands : {0}.", pItem.Text));
+                    }
+                }
+                else if (pItem is Operator)
+                {   // Next one is a operator
+                    //if(Stack.GetCount() > 0 && Stack.GetTail()->IsKindOf(RUNTIME_CLASS(COperator)))
+                    //{	// Last one is a operator too, syntax failed
+                    //	delete pItem;
+                    //	return FALSE;
+                    //}
+                }
+                stack.Add(pItem);
+            }
+            // Convert infix express to suffix express
+            return Infix2Suffix(stack);
+        }
+
+        public static Item ParseExpression(string exp)
+        {
+            var tokens = Parse(exp);
+            return CreateExpressionTree(tokens);
         }
     }
 }
