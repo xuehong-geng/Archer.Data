@@ -52,6 +52,7 @@
     <Compile Include="Filter\Expression.cs" />
     <Compile Include="Filter\IExpressionTranslator.cs" />
     <Compile Include="Filter\Parser.cs" />
+    <Compile Include="Service\DomainManager.cs" />
     <Compile Include="Service\DomainTypeMap.cs" />
     <Compile Include="Store\ConfigDbContext.cs" />
     <Compile Include="Model\Domain.cs" />

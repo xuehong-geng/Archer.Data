@@ -38,12 +38,15 @@ namespace Archer.DataSecurity.Service
 
     public class DataSecurityManager
     {
-        private static DataSecurityManager _default = new DataSecurityManager();
+        private static DataSecurityManager _default = null;
 
         public static DataSecurityManager Default
         {
             get
             {
+                if (_default == null)
+                    throw new InvalidOperationException(
+                        "DataSecurityManager has not been initialized yet! Please call InitializeDefaultManager before using Default manager.");
                 return _default;
 
             }
@@ -68,7 +71,7 @@ namespace Archer.DataSecurity.Service
             _map = new DomainTypeMap(_connectionString);
         }
 
-        public ConfigDbContext OpenDb()
+        protected ConfigDbContext OpenDb()
         {
             if (_connectionString == null)
                 return new ConfigDbContext();
@@ -137,50 +140,6 @@ namespace Archer.DataSecurity.Service
                 EntityReference = param
             });
             return Expression.Lambda<Func<T, bool>>(exp, param);
-        }
-
-        public void CreateOrUpdateDomainType(string id, string name)
-        {
-            using (var db = OpenDb())
-            {
-                var dt = db.DomainTypes.FirstOrDefault(a => a.Id == id);
-                if (dt == null)
-                {
-                    dt = new DomainType
-                    {
-                        Id = id,
-                        Name = name
-                    };
-                    db.DomainTypes.Add(dt);
-                }
-                else
-                {
-                    dt.Name = name;
-                }
-                db.SaveChanges();
-            }    
-        }
-
-        public void DeleteDomainType(string id)
-        {
-            using (var db = OpenDb())
-            {
-                var dt = db.DomainTypes.FirstOrDefault(a => a.Id == id);
-                if (dt != null)
-                {
-                    foreach (var map in dt.EntityMaps.ToList())
-                    {
-                        dt.EntityMaps.Remove(map);
-                    }
-                    foreach (var dm in dt.Domains.ToList())
-                    {
-                        dt.Domains.Remove(dm);
-                    }
-                    db.SaveChanges();
-                    db.DomainTypes.Remove(dt);
-                    db.SaveChanges();
-                }
-            }
         }
 
         public string CreateAccessRule(string name, Item filter, AccessType accessType)

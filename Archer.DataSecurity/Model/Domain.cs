@@ -35,17 +35,15 @@ namespace Archer.DataSecurity.Model
     public class Domain
     {
         [Key]
+        [Column(Order = 0)]
         public string Id { get; set; }
+        [Key]
+        [Column(Order = 1)]
         public string DomainTypeId { get; set; }
         public string Name { get; set; }
-        public string DisplayName { get; set; }
         public string ParentId { get; set; }
-        public string FullName { get; set; }
 
         [ForeignKey("DomainTypeId")]
         public virtual DomainType DomainType { get; set; }
-        [ForeignKey("ParentId")]
-        public virtual Domain Parent { get; set; }
-        public virtual ICollection<Domain> Children { get; set; } 
     }
 }

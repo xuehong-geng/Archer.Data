@@ -74,7 +74,8 @@ namespace Archer.DataSecurity.Test
             var ruleMale = mgr.CreateAccessRule("Male", expMale, AccessType.FullAccess);
             var ruleFemale = mgr.CreateAccessRule("Female", expFemale, AccessType.FullAccess);
             // Create domain type
-            mgr.CreateOrUpdateDomainType("Sex","性别");
+            var dmgr = new DomainManager("test");
+            dmgr.CreateOrUpdateDomainType("Sex","性别");
             // Grant to role
             mgr.AddRoleConstraint("Admin", ruleMale);
             // Query
