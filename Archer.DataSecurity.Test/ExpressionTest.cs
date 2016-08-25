@@ -11,8 +11,9 @@ namespace Archer.DataSecurity.Test
         [TestMethod]
         public void TestExpressionParser()
         {
-            string exp = "((a == 0) && ((b == 2) || (c == 'dde')))";
+            //string exp = "((a == 0) && ((b == 2) || (c == 'dde')))";
             //string exp = "a == 0 && (b == 2 || c == 'dde')";
+            string exp = "a nOt In ['a','de','fe','dfe']";
             Console.WriteLine(exp);
             var tokens = Parser.Parse(exp);
             foreach (var token in tokens)
