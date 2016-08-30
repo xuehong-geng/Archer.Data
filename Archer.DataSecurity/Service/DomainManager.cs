@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Archer.DataSecurity.Filter;
 using Archer.DataSecurity.Model;
 using Archer.DataSecurity.Store;
 
@@ -129,6 +130,55 @@ namespace Archer.DataSecurity.Service
                 return;
             _db.Domains.Remove(dm);
             _db.SaveChanges();
+        }
+    }
+
+    public static class DomainExpressionExtensions
+    {
+        public static Item Equals(this DomainType type, Domain domain)
+        {
+            if (domain == null)
+                throw new ArgumentNullException(nameof(domain));
+            if (domain.DomainTypeId != type.Id)
+                throw new InvalidOperationException("Cannot compare domain with different type.");
+            return new Equals {Left = new Variable(typeof (string), type.Id), Right = new Constant(domain.Id)};
+        }
+
+        public static Item NotEquals(this DomainType type, Domain domain)
+        {
+            if (domain == null)
+                throw new ArgumentNullException(nameof(domain));
+            if (domain.DomainTypeId != type.Id)
+                throw new InvalidOperationException("Cannot compare domain with different type.");
+            return new NotEquals { Left = new Variable(typeof(string), type.Id), Right = new Constant(domain.Id) };
+        }
+
+        public static Item In(this DomainType type, IEnumerable<Domain> domains)
+        {
+            if (domains == null)
+                throw new ArgumentNullException(nameof(domains));
+            var set = new Set(typeof (string));
+            foreach (var domain in domains)
+            {
+                if (domain.DomainTypeId != type.Id)
+                    throw new InvalidOperationException("Cannot compare domain with different type.");
+                set.Items.Add(new Constant(domain.Id));
+            }
+            return new In {Left = new Variable(typeof (string), type.Id), Right = set};
+        }
+
+        public static Item NotIn(this DomainType type, IEnumerable<Domain> domains)
+        {
+            if (domains == null)
+                throw new ArgumentNullException(nameof(domains));
+            var set = new Set(typeof(string));
+            foreach (var domain in domains)
+            {
+                if (domain.DomainTypeId != type.Id)
+                    throw new InvalidOperationException("Cannot compare domain with different type.");
+                set.Items.Add(new Constant(domain.Id));
+            }
+            return new NotIn { Left = new Variable(typeof(string), type.Id), Right = set };
         }
     }
 }
