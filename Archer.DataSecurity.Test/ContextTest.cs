@@ -9,6 +9,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Archer.DataSecurity.Test
 {
+    /// <summary>
+    /// student
+    /// </summary>
     public class Student
     {
         [Key]
