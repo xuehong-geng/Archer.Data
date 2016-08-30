@@ -27,6 +27,8 @@ namespace Archer.DataSecurity.Filter
         internal const string OPR_AND = "&&";
         internal const string OPR_OR = "||";
         internal const string OPR_NOT = "!";
+        internal const string OPR_IN = "in";
+        internal const string OPR_NOTIN = "not in";
     }
 
     // Operator's priorities
@@ -53,6 +55,8 @@ namespace Archer.DataSecurity.Filter
             new OprPriority{ opr = Constants.OPR_AND            , priority = 4},
             new OprPriority{ opr = Constants.OPR_OR             , priority = 3},
             new OprPriority{ opr = Constants.OPR_NOT            , priority = 3},
+            new OprPriority{ opr = Constants.OPR_IN             , priority = 5},
+            new OprPriority{ opr = Constants.OPR_NOTIN          , priority = 5},
         };
 
         public static int GetPriority(string opr)
@@ -117,9 +121,9 @@ namespace Archer.DataSecurity.Filter
         {
             string strText = Text.Trim();
             if ((strText.Substring(0, 1) == "'" &&
-                strText.Substring(strText.Length - 1, 1) == "'") ||
+                 strText.Substring(strText.Length - 1, 1) == "'") ||
                 (strText.Substring(0, 1) == "\"" &&
-                strText.Substring(strText.Length - 1, 1) == "\""))
+                 strText.Substring(strText.Length - 1, 1) == "\""))
             {
                 // It's a string const
                 type = typeof (string);
@@ -202,6 +206,17 @@ namespace Archer.DataSecurity.Filter
                 return Convert.ChangeType(str, vt);
             }
         }
+
+        public bool IsSet()
+        {
+            string strText = Text.Trim();
+            if (strText.Substring(0, 1) == "[" &&
+                strText.Substring(strText.Length - 1, 1) == "]")
+            {
+                return true;
+            }
+            return false;
+        }
     }
 
     public class Operator : Token
@@ -238,6 +253,8 @@ namespace Archer.DataSecurity.Filter
             else if (str.StartsWith(Constants.OPR_BIGGER)) return Constants.OPR_BIGGER;
             else if (str.StartsWith(Constants.OPR_SMALLER)) return Constants.OPR_SMALLER;
             else if (str.StartsWith(Constants.OPR_NOT)) return Constants.OPR_NOT;
+            else if (str.StartsWith(Constants.OPR_IN, StringComparison.OrdinalIgnoreCase)) return Constants.OPR_IN;
+            else if (str.StartsWith(Constants.OPR_NOTIN, StringComparison.OrdinalIgnoreCase)) return Constants.OPR_NOTIN;
             else
                 return null;
         }
@@ -383,6 +400,10 @@ namespace Archer.DataSecurity.Filter
                 return new And();
             else if(opr.Text == Constants.OPR_OR)
                 return new Or();
+            else if (opr.Text == Constants.OPR_IN)
+                return new In();
+            else if (opr.Text == Constants.OPR_NOTIN)
+                return new NotIn();
             else
             {
                 throw new NotSupportedException("Not supported operator!");
@@ -395,6 +416,21 @@ namespace Archer.DataSecurity.Filter
             if (opr.IsConst(out type))
             {
                 return new Constant(opr.GetConst());
+            }
+            else if (opr.IsSet())
+            {
+                // Create a set
+                string txt = opr.Text.Trim();
+                string list = txt.Substring(1, txt.Length - 2); // Remove [ and ]
+                var items = list.Split(',');
+                var set = new Set(typeof(Array));
+                foreach (var item in items)
+                {
+                    var operand = new Operand(item.Trim());
+                    var i = CreateOperand(operand);
+                    set.Items.Add(i as ValueOrReference);
+                }
+                return set;
             }
             else
             {

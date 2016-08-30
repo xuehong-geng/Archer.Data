@@ -22,6 +22,36 @@ namespace Archer.DataSecurity.Filter
 
         public abstract Expression ToLinq(ToLinqContext ctx);
         public abstract void Translate(IExpressionTranslator translator);
+
+        public Item Equals(Item val)
+        {
+            return new Equals {Left = this, Right = val};
+        }
+
+        public Item NotEquals(Item val)
+        {
+            return new NotEquals {Left = this, Right = val};
+        }
+
+        public Item And(Item right)
+        {
+            return new And {Left = this, Right = right};
+        }
+
+        public Item Or(Item right)
+        {
+            return new Or {Left = this, Right = right};
+        }
+
+        public Item In(Set set)
+        {
+            return new In {Left = this, Right = set};
+        }
+
+        public Item NotIn(Set set)
+        {
+            return new NotIn {Left = this, Right = set};
+        }
     }
 
     public abstract class Binary : Item
@@ -61,6 +91,20 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
+    public class NotEquals : Binary
+    {
+        public override string ToString()
+        {
+            return "(" + Left + " != " + Right + ")";
+        }
+
+        public override Expression ToLinq(ToLinqContext ctx)
+        {
+            ThrowIfInvalid();
+            return Expression.NotEqual(Left.ToLinq(ctx), Right.ToLinq(ctx));
+        }
+    }
+
     public class And : Binary
     {
         public override string ToString()
@@ -89,7 +133,7 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public abstract class Set : Item
+    public class Set : Item
     {
         private Collection<ValueOrReference> _items = new Collection<ValueOrReference>();
 
@@ -110,7 +154,7 @@ namespace Archer.DataSecurity.Filter
         public override string ToString()
         {
             var str = new StringBuilder();
-            str.Append("(");
+            str.Append("[");
             bool first = true;
             foreach (var item in Items)
             {
@@ -122,6 +166,7 @@ namespace Archer.DataSecurity.Filter
                 }
                 str.Append(item);
             }
+            str.Append("]");
             return str.ToString();
         }
 
@@ -152,58 +197,44 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class In : Set
+    public class In : Binary
     {
-        public ValueOrReference Operand { get; set; }
-
         public override string ToString()
         {
-            return "(" + Operand + " IN " + base.ToString() + ")";
+            return "(" + Left + " IN " + Right + ")";
         }
 
         public override Expression ToLinq(ToLinqContext ctx)
         {
             ThrowIfInvalid();
-            var array = base.ToLinq(ctx);
-            var arrType = Type;
+            if (!(Right is Set))
+                throw new InvalidOperationException("Right item of 'In' must be a set!");
+            var set = Right as Set;
+            var array = set.ToLinq(ctx);
+            var arrType = set.Type;
             var memberType = arrType.GetMethod("Contains");
-            return Expression.Call(array, memberType, Operand.ToLinq(ctx));
-        }
-
-        public override void Translate(IExpressionTranslator translator)
-        {
-            if (translator == null)
-                return;
-            base.Translate(translator);
-            Operand = translator.Translate(Operand) as ValueOrReference;
+            return Expression.Call(array, memberType, Left.ToLinq(ctx));
         }
     }
 
-    public class NotIn : Set
+    public class NotIn : Binary
     {
-        public Item Operand { get; set; }
-
         public override string ToString()
         {
-            return "(" + Operand + " IN " + base.ToString() + ")";
+            return "(" + Left + " NOT IN " + Right + ")";
         }
 
         public override Expression ToLinq(ToLinqContext ctx)
         {
             ThrowIfInvalid();
-            var array = base.ToLinq(ctx);
-            var arrType = Type;
+            if (!(Right is Set))
+                throw new InvalidOperationException("Right item of 'In' must be a set!");
+            var set = Right as Set;
+            var array = set.ToLinq(ctx);
+            var arrType = set.Type;
             var memberType = arrType.GetMethod("Contains");
-            var call = Expression.Call(array, memberType, Operand.ToLinq(ctx));
+            var call = Expression.Call(array, memberType, Left.ToLinq(ctx));
             return Expression.Not(call);
-        }
-
-        public override void Translate(IExpressionTranslator translator)
-        {
-            if (translator == null)
-                return;
-            base.Translate(translator);
-            Operand = translator.Translate(Operand) as ValueOrReference;
         }
     }
 
