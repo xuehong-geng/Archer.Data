@@ -45,6 +45,7 @@ namespace Archer.DataSecurity.Test
         [TestMethod]
         public void TestFilteredEntitySet()
         {
+
             DataSecurityManager.InitializeDefaultManager("test");
             // Prepare test data
             var db = new SchoolDbContext("test");
