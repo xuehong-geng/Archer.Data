@@ -26,6 +26,9 @@ namespace Archer.DataSecurity.Model
         Organization = 3    
     }
 
+    /// <summary>
+    /// 数据的访问规则配置
+    /// </summary>
     public class AccessRule
     {
         [Key]
@@ -33,8 +36,14 @@ namespace Archer.DataSecurity.Model
         public string Name { get; set; }
         public string Resource { get; set; }
         public AccessType AccessType { get; set; }
+        /// <summary>
+        /// 对数据的过滤条件，相当于where的查询条件表达式。条件的字段名是domaintype的Name
+        /// </summary>
         public string Filter { get; set; }
-
+        /// <summary> 
+        /// 数据的访问规则类型，是针对人，角色，组织之类的
+        /// 限制规则，告诉系统，针对那个类型生效
+        /// </summary>
         public virtual ICollection<AccessConstraint> Constraints { get; set; } 
     }
 

@@ -12,9 +12,9 @@ namespace Archer.DataSecurity.Model
     {
         [Key]
         public string Id { get; set; }
-        public string Name { get; set; }    
+        public string Name { get; set; }    //标准的表的查询字段
 
-        public virtual ICollection<DomainTypeEntityMap> EntityMaps { get; set; } 
+        public virtual ICollection<DomainTypeEntityMap> EntityMaps { get; set; }  //domain type的具体定义 关系表，如果字段被其他用了，可以通过这里设置其他字段名来关联domiantype
         public virtual ICollection<Domain> Domains { get; set; } 
     }
 
