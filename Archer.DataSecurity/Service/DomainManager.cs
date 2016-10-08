@@ -9,6 +9,9 @@ using Archer.DataSecurity.Store;
 
 namespace Archer.DataSecurity.Service
 {
+    /// <summary>
+    /// domain数据维护
+    /// </summary>
     public class DomainManager
     {
         private ConfigDbContext _db;

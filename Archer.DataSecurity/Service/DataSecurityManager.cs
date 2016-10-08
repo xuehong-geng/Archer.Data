@@ -35,7 +35,9 @@ namespace Archer.DataSecurity.Service
             return item;
         }
     }
-
+    /// <summary>
+    /// domain权限维护
+    /// </summary>
     public class DataSecurityManager
     {
         private static DataSecurityManager _default = null;

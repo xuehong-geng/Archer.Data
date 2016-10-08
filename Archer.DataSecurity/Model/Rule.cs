@@ -10,6 +10,9 @@ using Archer.DataSecurity.Filter;
 
 namespace Archer.DataSecurity.Model
 {
+    /// <summary>
+    /// 权限的范围
+    /// </summary>
     public enum AccessType : int
     {
         ListOnly = 0,       // No Access to content, can only know it is exist
@@ -17,13 +20,15 @@ namespace Archer.DataSecurity.Model
         ReadWrite = 2,      // Can read and write content or update properties
         FullAccess = 3      // Can do everything including delete it
     }
-
+    /// <summary>
+    /// 规则的类型
+    /// </summary>
     public enum ActorType : int
     {
         User = 0,
         Role = 1,
         Group = 2,
-        Organization = 3    
+        Organization = 3
     }
 
     /// <summary>
@@ -44,26 +49,43 @@ namespace Archer.DataSecurity.Model
         /// 数据的访问规则类型，是针对人，角色，组织之类的
         /// 限制规则，告诉系统，针对那个类型生效
         /// </summary>
-        public virtual ICollection<AccessConstraint> Constraints { get; set; } 
+        public virtual ICollection<AccessConstraint> Constraints { get; set; }
     }
-
+    /// <summary>
+    /// 规则和角色关联
+    /// </summary>
     public class AccessConstraint
     {
+        /// <summary>
+        /// 规则的范围
+        /// User = 0, Role = 1, Group = 2,Organization = 3    
+        /// </summary>
         [Key]
         [Column(Order = 0)]
         public ActorType ActorType { get; set; }
+        /// <summary>
+        /// UserID or RoleID or GropID or OrganizationID
+        /// </summary>
         [Key]
         [Column(Order = 1)]
         public string ActorId { get; set; }
+        /// <summary>
+        /// AccessRule表的外键
+        /// </summary>
         [Key]
         [Column(Order = 2)]
         public string RuleId { get; set; }
+        /// <summary>
+        /// UserName or RoleName or GropName or OrganizationName
+        /// </summary>
         public string ActorName { get; set; }
 
         [ForeignKey("RuleId")]
         public virtual AccessRule Rule { get; set; }
     }
-
+    /// <summary>
+    /// 单个规则
+    /// </summary>
     public class Rule
     {
         public AccessType AccessType { get; set; }
