@@ -15,7 +15,7 @@ namespace Archer.DataSecurity.Test
     public class Student
     {
         [Key]
-        public string Id { get; set; }
+        public string ID { get; set; }
         public string Name { get; set; }
         public string Sex { get; set; }
         public DateTime? Birthday { get; set; }
@@ -51,7 +51,7 @@ namespace Archer.DataSecurity.Test
             var db = new SchoolDbContext("test");
             db.Students.Add(new Student
             {
-                Id = Guid.NewGuid().ToString(),
+                ID = Guid.NewGuid().ToString(),
                 Name = "TEST",
                 Address = "TEST",
                 Birthday = DateTime.Now,
@@ -61,7 +61,7 @@ namespace Archer.DataSecurity.Test
             });
             db.Students.Add(new Student
             {
-                Id = Guid.NewGuid().ToString(),
+                ID = Guid.NewGuid().ToString(),
                 Name = "TEST",
                 Address = "TEST",
                 Birthday = DateTime.Now,

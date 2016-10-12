@@ -28,26 +28,26 @@ namespace Archer.DataSecurity.Service
 
         public ConfigDbContext DbContext { get { return _db; } }
 
-        public DomainType FindDomainTypeById(string id)
+        public DomainType FindDomainTypeByID(string id)
         {
-            return _db.DomainTypes.FirstOrDefault(a => a.Id == id);
+            return _db.DomainTypes.FirstOrDefault(a => a.DomainTypeID == id);
         }
 
         public DomainType CreateOrUpdateDomainType(string id, string name)
         {
-            var dt = _db.DomainTypes.FirstOrDefault(a => a.Id == id);
+            var dt = _db.DomainTypes.FirstOrDefault(a => a.DomainTypeID == id);
             if (dt == null)
             {
                 dt = new DomainType
                 {
-                    Id = id,
-                    Name = name
+                    DomainTypeID = id,
+                    DomainTypeName = name
                 };
                 _db.DomainTypes.Add(dt);
             }
             else
             {
-                dt.Name = name;
+                dt.DomainTypeName = name;
             }
             _db.SaveChanges();
             return dt;
@@ -55,7 +55,7 @@ namespace Archer.DataSecurity.Service
 
         public void DeleteDomainType(string id)
         {
-            var dt = _db.DomainTypes.FirstOrDefault(a => a.Id == id);
+            var dt = _db.DomainTypes.FirstOrDefault(a => a.DomainTypeID == id);
             if (dt != null)
             {
                 foreach (var map in dt.EntityMaps.ToList())
@@ -72,16 +72,16 @@ namespace Archer.DataSecurity.Service
             }
         }
 
-        public void MapDomainTypeToEntity(string domainTypeId, string entityName, string fieldName)
+        public void MapDomainTypeToEntity(string domainTypeID, string entityName, string fieldName)
         {
             var map =
                 _db.DomainTypeEntityMaps.FirstOrDefault(
-                    a => a.DomainTypeId == domainTypeId && a.EntityName == entityName);
+                    a => a.DomainTypeID == domainTypeID && a.EntityName == entityName);
             if (map == null)
             {
                 map = new DomainTypeEntityMap
                 {
-                    DomainTypeId = domainTypeId,
+                    DomainTypeID = domainTypeID,
                     EntityName = entityName,
                     FieldName = fieldName
                 };
@@ -94,11 +94,11 @@ namespace Archer.DataSecurity.Service
             _db.SaveChanges();
         }
 
-        public void UnmapDomainTypeFromEntity(string domainTypeId, string entityName)
+        public void UnmapDomainTypeFromEntity(string domainTypeID, string entityName)
         {
             var map =
                 _db.DomainTypeEntityMaps.FirstOrDefault(
-                    a => a.DomainTypeId == domainTypeId && a.EntityName == entityName);
+                    a => a.DomainTypeID == domainTypeID && a.EntityName == entityName);
             if (map == null)
                 return;
             _db.DomainTypeEntityMaps.Remove(map);
@@ -107,28 +107,28 @@ namespace Archer.DataSecurity.Service
 
         public void AddOrUpdateDomain(DomainType type, string id, string name)
         {
-            var dm = _db.Domains.FirstOrDefault(a => a.DomainTypeId == type.Id && a.Id == id);
+            var dm = _db.Domains.FirstOrDefault(a => a.DomainTypeID == type.DomainTypeID && a.DomainID == id);
             if (dm == null)
             {
                 dm = new Domain
                 {
-                    DomainTypeId = type.Id,
-                    Id = id,
-                    Name = name,
-                    ParentId = null
+                    DomainTypeID = type.DomainTypeID,
+                    DomainID = id,
+                    DomainName = name,
+                    ParentID = null
                 };
                 _db.Domains.Add(dm);
             }
             else
             {
-                dm.Name = name;
+                dm.DomainName = name;
             }
             _db.SaveChanges();
         }
 
         public void DeleteDomain(DomainType type, string id)
         {
-            var dm = _db.Domains.FirstOrDefault(a => a.DomainTypeId == type.Id && a.Id == id);
+            var dm = _db.Domains.FirstOrDefault(a => a.DomainTypeID == type.DomainTypeID && a.DomainID == id);
             if (dm == null)
                 return;
             _db.Domains.Remove(dm);
@@ -142,32 +142,32 @@ namespace Archer.DataSecurity.Service
         {
             if (domain == null)
                 throw new ArgumentNullException(nameof(domain));
-            if (domain.DomainTypeId != type.Id)
+            if (domain.DomainTypeID != type.DomainTypeID)
                 throw new InvalidOperationException("Cannot compare domain with different type.");
-            return new Equals {Left = new Variable(typeof (string), type.Id), Right = new Constant(domain.Id)};
+            return new Equals { Left = new Variable(typeof(string), type.DomainTypeID), Right = new Constant(domain.DomainTypeID) };
         }
 
         public static Item NotEquals(this DomainType type, Domain domain)
         {
             if (domain == null)
                 throw new ArgumentNullException(nameof(domain));
-            if (domain.DomainTypeId != type.Id)
+            if (domain.DomainTypeID != type.DomainTypeID)
                 throw new InvalidOperationException("Cannot compare domain with different type.");
-            return new NotEquals { Left = new Variable(typeof(string), type.Id), Right = new Constant(domain.Id) };
+            return new NotEquals { Left = new Variable(typeof(string), type.DomainTypeID), Right = new Constant(domain.DomainTypeID) };
         }
 
         public static Item In(this DomainType type, IEnumerable<Domain> domains)
         {
             if (domains == null)
                 throw new ArgumentNullException(nameof(domains));
-            var set = new Set(typeof (string));
+            var set = new Set(typeof(string));
             foreach (var domain in domains)
             {
-                if (domain.DomainTypeId != type.Id)
+                if (domain.DomainTypeID != type.DomainTypeID)
                     throw new InvalidOperationException("Cannot compare domain with different type.");
-                set.Items.Add(new Constant(domain.Id));
+                set.Items.Add(new Constant(domain.DomainTypeID));
             }
-            return new In {Left = new Variable(typeof (string), type.Id), Right = set};
+            return new In { Left = new Variable(typeof(string), type.DomainTypeID), Right = set };
         }
 
         public static Item NotIn(this DomainType type, IEnumerable<Domain> domains)
@@ -177,11 +177,11 @@ namespace Archer.DataSecurity.Service
             var set = new Set(typeof(string));
             foreach (var domain in domains)
             {
-                if (domain.DomainTypeId != type.Id)
+                if (domain.DomainTypeID != type.DomainTypeID)
                     throw new InvalidOperationException("Cannot compare domain with different type.");
-                set.Items.Add(new Constant(domain.Id));
+                set.Items.Add(new Constant(domain.DomainTypeID));
             }
-            return new NotIn { Left = new Variable(typeof(string), type.Id), Right = set };
+            return new NotIn { Left = new Variable(typeof(string), type.DomainTypeID), Right = set };
         }
     }
 }

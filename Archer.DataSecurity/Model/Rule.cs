@@ -37,14 +37,20 @@ namespace Archer.DataSecurity.Model
     public class AccessRule
     {
         [Key]
-        public string Id { get; set; }
-        public string Name { get; set; }
+        public string AccessRuleID { get; set; }
+        public string AccessRuleName { get; set; }
         public string Resource { get; set; }
         public AccessType AccessType { get; set; }
         /// <summary>
         /// 对数据的过滤条件，相当于where的查询条件表达式。条件的字段名是domaintype的Name
         /// </summary>
         public string Filter { get; set; }
+        public bool IsEnabled { get; set; }
+        public bool IsDeleted { get; set; }
+        public string CreateBy { get; set; }
+        public DateTime CreateDate { get; set; }
+        public string ModifiedBy { get; set; }
+        public DateTime ModifiedDate { get; set; }
         /// <summary> 
         /// 数据的访问规则类型，是针对人，角色，组织之类的
         /// 限制规则，告诉系统，针对那个类型生效
@@ -68,19 +74,25 @@ namespace Archer.DataSecurity.Model
         /// </summary>
         [Key]
         [Column(Order = 1)]
-        public string ActorId { get; set; }
+        public string ActorID { get; set; }
         /// <summary>
         /// AccessRule表的外键
         /// </summary>
         [Key]
         [Column(Order = 2)]
-        public string RuleId { get; set; }
+        public string RuleID { get; set; }
         /// <summary>
         /// UserName or RoleName or GropName or OrganizationName
         /// </summary>
         public string ActorName { get; set; }
+        public bool IsEnabled { get; set; }
+        public bool IsDeleted { get; set; }
+        public string CreateBy { get; set; }
+        public DateTime CreateDate { get; set; }
+        public string ModifiedBy { get; set; }
+        public DateTime ModifiedDate { get; set; }
 
-        [ForeignKey("RuleId")]
+        [ForeignKey("RuleID")]
         public virtual AccessRule Rule { get; set; }
     }
     /// <summary>

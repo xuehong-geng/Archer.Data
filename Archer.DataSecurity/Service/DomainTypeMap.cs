@@ -12,7 +12,7 @@ namespace Archer.DataSecurity.Service
     {
         private class Entry
         {
-            public string TypeId { get; set; }
+            public string TypeID { get; set; }
             public Type EntityType { get; set; }
             public PropertyInfo PropertyInfo { get; set; }
         }
@@ -33,15 +33,15 @@ namespace Archer.DataSecurity.Service
             _connectionString = nameOrConnectionString;
         }
 
-        protected PropertyInfo ResolveProperty(string domainTypeId, Type entityType)
+        protected PropertyInfo ResolveProperty(string domainTypeID, Type entityType)
         {
             using (var db = _connectionString == null ? new ConfigDbContext() : new ConfigDbContext(_connectionString))
             {
-                var domainType = db.DomainTypes.FirstOrDefault(a => a.Id == domainTypeId);
+                var domainType = db.DomainTypes.FirstOrDefault(a => a.DomainTypeID == domainTypeID);
                 if (domainType == null)
-                    throw new InvalidOperationException(string.Format("Domain type {0} is not exist!", domainTypeId));
+                    throw new InvalidOperationException(string.Format("Domain type {0} is not exist!", domainTypeID));
                 var map = domainType.EntityMaps.FirstOrDefault(a => a.EntityName == entityType.FullName);
-                var propName = map == null ? domainType.Id : map.FieldName;
+                var propName = map == null ? domainType.DomainTypeID : map.FieldName;
                 var propInfo = entityType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
                 if (propInfo == null)
                     throw new InvalidOperationException(String.Format("Property {0} is not in Entity {1}!", propName,
@@ -50,19 +50,19 @@ namespace Archer.DataSecurity.Service
             }
         }
 
-        public PropertyInfo GetMappedProperty(string domainTypeId, Type entityType)
+        public PropertyInfo GetMappedProperty(string domainTypeID, Type entityType)
         {
             lock (_lock)
             {
                 Dictionary<string, Entry> entries = null;
-                if (!_dict.ContainsKey(domainTypeId))
+                if (!_dict.ContainsKey(domainTypeID))
                 {
                     entries = new Dictionary<string, Entry>();
-                    _dict[domainTypeId] = entries;
+                    _dict[domainTypeID] = entries;
                 }
                 else
                 {
-                    entries = _dict[domainTypeId];
+                    entries = _dict[domainTypeID];
                 }
                 if (entries.ContainsKey(entityType.FullName))
                 {
@@ -71,10 +71,10 @@ namespace Archer.DataSecurity.Service
                 }
                 else
                 {
-                    var propInfo = ResolveProperty(domainTypeId, entityType);
+                    var propInfo = ResolveProperty(domainTypeID, entityType);
                     var entry = new Entry
                     {
-                        TypeId = domainTypeId,
+                        TypeID = domainTypeID,
                         EntityType = entityType,
                         PropertyInfo = propInfo
                     };

@@ -83,16 +83,16 @@ namespace Archer.DataSecurity.Service
             }
         }
 
-        public Rule GetRuleOnEntityForRole<T>(string role, AccessType accessType) where T : class 
+        public Rule GetRuleOnEntityForRole<T>(string role, AccessType accessType) where T : class
         {
-            using(var db = OpenDb())
+            using (var db = OpenDb())
             {
                 // Get all rules of this role
                 var rules = db.AccessConstraints.Where(
-                    a => a.ActorType == ActorType.Role && a.ActorId == role && (int)a.Rule.AccessType >= (int)accessType)
+                    a => a.ActorType == ActorType.Role && a.ActorID == role && (int)a.Rule.AccessType >= (int)accessType)
                     .Select(a => a.Rule);
                 // Choose those that suitable to entity
-                var translator = new DomainFilterTranslator(_map, typeof (T));
+                var translator = new DomainFilterTranslator(_map, typeof(T));
                 var acceptRules = new List<Item>();
                 foreach (var rule in rules)
                 {
@@ -102,10 +102,10 @@ namespace Archer.DataSecurity.Service
                         exp.Translate(translator);
                         acceptRules.Add(exp);
                     }
-                    catch(Exception err)
+                    catch (Exception err)
                     {
-                        Trace.TraceInformation("Rule {0} is not suitable to entity {1}. Err:{2}", rule.Id,
-                            typeof (T).FullName, err.Message);
+                        Trace.TraceInformation("Rule {0} is not suitable to entity {1}. Err:{2}", rule.AccessRuleID,
+                            typeof(T).FullName, err.Message);
                     }
                 }
                 // Merge those rules into single rule using OR operator
@@ -118,7 +118,7 @@ namespace Archer.DataSecurity.Service
                         root = rule;
                     else
                     {
-                        root = new Or {Left = root, Right = rule};
+                        root = new Or { Left = root, Right = rule };
                     }
                 }
 
@@ -130,7 +130,7 @@ namespace Archer.DataSecurity.Service
             }
         }
 
-        public Expression<Func<T, bool>> GetFilterExpressionForRole<T>(string role, AccessType accessType) where T : class 
+        public Expression<Func<T, bool>> GetFilterExpressionForRole<T>(string role, AccessType accessType) where T : class
         {
             var rule = GetRuleOnEntityForRole<T>(role, accessType);
             if (rule.DataFilter == null)
@@ -150,14 +150,14 @@ namespace Archer.DataSecurity.Service
             {
                 var rule = new AccessRule
                 {
-                    Id = Guid.NewGuid().ToString().ToLower(),
-                    Name = name,
+                    AccessRuleID = Guid.NewGuid().ToString().ToLower(),
+                    AccessRuleName = name,
                     AccessType = accessType,
                     Filter = filter.ToString()
                 };
                 db.AccessRules.Add(rule);
                 db.SaveChanges();
-                return rule.Id;
+                return rule.AccessRuleID;
             }
         }
 
@@ -165,7 +165,7 @@ namespace Archer.DataSecurity.Service
         {
             using (var db = OpenDb())
             {
-                var rule = db.AccessRules.FirstOrDefault(a => a.Id == id);
+                var rule = db.AccessRules.FirstOrDefault(a => a.AccessRuleID == id);
                 if (rule != null)
                 {
                     // Remove all constraints too
@@ -185,7 +185,7 @@ namespace Archer.DataSecurity.Service
         {
             using (var db = OpenDb())
             {
-                var rule = db.AccessRules.FirstOrDefault(a => a.Id == id);
+                var rule = db.AccessRules.FirstOrDefault(a => a.AccessRuleID == id);
                 if (rule == null)
                     throw new InvalidOperationException("Access rule not exist!");
                 rule.Filter = filter.ToString();
@@ -199,15 +199,15 @@ namespace Archer.DataSecurity.Service
             {
                 var cons =
                     db.AccessConstraints.FirstOrDefault(
-                        a => a.ActorType == ActorType.Role && a.ActorId == role && a.RuleId == rule);
+                        a => a.ActorType == ActorType.Role && a.ActorID == role && a.RuleID == rule);
                 if (cons != null)
                     return;
                 cons = new AccessConstraint
                 {
                     ActorType = ActorType.Role,
-                    ActorId = role,
+                    ActorID = role,
                     ActorName = role,
-                    RuleId = rule
+                    RuleID = rule
                 };
                 db.AccessConstraints.Add(cons);
                 db.SaveChanges();
@@ -220,7 +220,7 @@ namespace Archer.DataSecurity.Service
             {
                 var cons =
                     db.AccessConstraints.FirstOrDefault(
-                        a => a.ActorType == ActorType.Role && a.ActorId == role && a.RuleId == rule);
+                        a => a.ActorType == ActorType.Role && a.ActorID == role && a.RuleID == rule);
                 if (cons == null)
                     return;
                 db.AccessConstraints.Remove(cons);
