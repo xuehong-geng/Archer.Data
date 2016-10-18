@@ -16,12 +16,12 @@ namespace Archer.DataSecurity.Model
         /// 标准的表的查询字段
         /// </summary>
         public string DomainTypeName { get; set; }
-        public bool IsEnabled { get; set; }
-        public bool IsDeleted { get; set; }
+        public bool? IsEnabled { get; set; }
+        public bool? IsDeleted { get; set; }
         public string CreateBy { get; set; }
-        public DateTime CreateDate { get; set; }
+        public DateTime? CreateDate { get; set; }
         public string ModifiedBy { get; set; }
-        public DateTime ModifiedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
         /// <summary>
         /// domain type的具体定义 关系表，如果字段被其他用了，可以通过这里设置其他字段名来关联domiantype
         /// </summary>
@@ -50,12 +50,12 @@ namespace Archer.DataSecurity.Model
         /// 查询用字段名
         /// </summary>
         public string FieldName { get; set; }
-        public bool IsEnabled { get; set; }
-        public bool IsDeleted { get; set; }
+        public bool? IsEnabled { get; set; }
+        public bool? IsDeleted { get; set; }
         public string CreateBy { get; set; }
-        public DateTime CreateDate { get; set; }
+        public DateTime? CreateDate { get; set; }
         public string ModifiedBy { get; set; }
-        public DateTime ModifiedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
 
         [ForeignKey("DomainTypeID")]
         public virtual DomainType DomainType { get; set; }
@@ -71,12 +71,12 @@ namespace Archer.DataSecurity.Model
         public string DomainTypeID { get; set; }
         public string DomainName { get; set; }
         public string ParentID { get; set; }
-        public bool IsEnabled { get; set; }
-        public bool IsDeleted { get; set; }
+        public bool? IsEnabled { get; set; }
+        public bool? IsDeleted { get; set; }
         public string CreateBy { get; set; }
-        public DateTime CreateDate { get; set; }
+        public DateTime? CreateDate { get; set; }
         public string ModifiedBy { get; set; }
-        public DateTime ModifiedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
 
         [ForeignKey("DomainTypeID")]
         public virtual DomainType DomainType { get; set; }
