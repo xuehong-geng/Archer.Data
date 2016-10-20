@@ -34,5 +34,11 @@ namespace Archer.DataSecurity.Service
             var lambda = DataSecurityManager.Default.GetFilterExpressionForRole<T>(role, accessType);
             return lambda == null ? entitySet : entitySet.Where(lambda);
         }
+        public static IQueryable<T> FilterForRoles<T>(this IQueryable<T> entitySet, string[] roles, AccessType accessType) where T : class
+        {
+            var lambda = DataSecurityManager.Default.GetFilterExpressionForRole<T>(roles, accessType);
+            return lambda == null ? entitySet : entitySet.Where(lambda);
+        }
+
     }
 }

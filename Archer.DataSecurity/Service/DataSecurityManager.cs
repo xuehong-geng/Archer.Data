@@ -99,7 +99,53 @@ namespace Archer.DataSecurity.Service
                     try
                     {
                         var exp = Parser.ParseExpression(rule.Filter);
-                        exp.Translate(translator);
+                        //exp.Translate(translator);
+                        acceptRules.Add(exp);
+                    }
+                    catch (Exception err)
+                    {
+                        Trace.TraceInformation("Rule {0} is not suitable to entity {1}. Err:{2}", rule.AccessRuleID,
+                            typeof(T).FullName, err.Message);
+                    }
+                }
+                // Merge those rules into single rule using OR operator
+                Item root = null;
+                while (acceptRules.Any())
+                {
+                    var rule = acceptRules[0];
+                    acceptRules.RemoveAt(0);
+                    if (root == null)
+                        root = rule;
+                    else
+                    {
+                        root = new Or { Left = root, Right = rule };
+                    }
+                }
+
+                return new Rule
+                {
+                    AccessType = accessType,
+                    DataFilter = root
+                };
+            }
+        }
+        public Rule GetRuleOnEntityForRole<T>(string[] roles, AccessType accessType) where T : class
+        {
+            using (var db = OpenDb())
+            {
+                // Get all rules of this role
+                var rules = db.AccessConstraints.Where(
+                    a => a.ActorType == ActorType.Role && roles.Contains(a.ActorID) && (int)a.Rule.AccessType >= (int)accessType)
+                    .Select(a => a.Rule);
+                // Choose those that suitable to entity
+                var translator = new DomainFilterTranslator(_map, typeof(T));
+                var acceptRules = new List<Item>();
+                foreach (var rule in rules)
+                {
+                    try
+                    {
+                        var exp = Parser.ParseExpression(rule.Filter);
+                        //exp.Translate(translator);
                         acceptRules.Add(exp);
                     }
                     catch (Exception err)
@@ -133,6 +179,20 @@ namespace Archer.DataSecurity.Service
         public Expression<Func<T, bool>> GetFilterExpressionForRole<T>(string role, AccessType accessType) where T : class
         {
             var rule = GetRuleOnEntityForRole<T>(role, accessType);
+            if (rule.DataFilter == null)
+                return null;
+            var param = System.Linq.Expressions.Expression.Parameter(typeof(T), "p");
+            var exp = rule.DataFilter.ToLinq(new ToLinqContext
+            {
+                EntityType = typeof(T),
+                EntityReference = param
+            });
+            return Expression.Lambda<Func<T, bool>>(exp, param);
+        }
+
+        public Expression<Func<T, bool>> GetFilterExpressionForRole<T>(string[] roles, AccessType accessType) where T : class
+        {
+            var rule = GetRuleOnEntityForRole<T>(roles, accessType);
             if (rule.DataFilter == null)
                 return null;
             var param = System.Linq.Expressions.Expression.Parameter(typeof(T), "p");
