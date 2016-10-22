@@ -30,7 +30,7 @@ namespace Archer.DataSecurity.Service
             {   // Variables must be translated to reference of entity fields
                 var v = item as Variable;
                 var propInfo = _map.GetMappedProperty(v.Name, _entityType);
-                return new Variable(v.Type, propInfo.Name);
+                return new Variable(propInfo.PropertyType, propInfo.Name);
             }
             return item;
         }
@@ -301,6 +301,20 @@ namespace Archer.DataSecurity.Service
                 var cons =
                     db.AccessConstraints.FirstOrDefault(
                         a => a.ActorType == ActorType.Role && a.ActorID == role && a.RuleID == rule);
+                if (cons == null)
+                    return;
+                db.AccessConstraints.Remove(cons);
+                db.SaveChanges();
+            }
+        }
+
+        public void DelRoleConstraints(string role)
+        {
+            using (var db = OpenDb())
+            {
+                var cons =
+                    db.AccessConstraints.FirstOrDefault(
+                        a => a.ActorType == ActorType.Role && a.ActorID == role);
                 if (cons == null)
                     return;
                 db.AccessConstraints.Remove(cons);

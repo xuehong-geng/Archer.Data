@@ -136,6 +136,12 @@ namespace Archer.DataSecurity.Filter
                 type = typeof (bool);
                 return true;
             }
+            else if (strText.Equals("null", StringComparison.OrdinalIgnoreCase))
+            {
+                // It's a null
+                type = typeof (object);
+                return true;
+            }
             else
             {
                 int iDigitCnt = 0, iDotCnt = 0, iCharCnt = 0;
@@ -201,6 +207,10 @@ namespace Archer.DataSecurity.Filter
             {
                 return str.Equals("true", StringComparison.OrdinalIgnoreCase) ? true : false;
             }
+            else if (str.Equals("null", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
             else
             {
                 return Convert.ChangeType(str, vt);
@@ -216,6 +226,11 @@ namespace Archer.DataSecurity.Filter
                 return true;
             }
             return false;
+        }
+
+        public bool IsNull()
+        {
+            return "null".Equals(Text, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -396,6 +411,8 @@ namespace Archer.DataSecurity.Filter
         {
             if (opr.Text == Constants.OPR_EQUAL)
                 return new Equals();
+            else if(opr.Text == Constants.OPR_NOTEQUAL)
+                return new NotEquals();
             else if(opr.Text == Constants.OPR_AND)
                 return new And();
             else if(opr.Text == Constants.OPR_OR)

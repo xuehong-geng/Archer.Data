@@ -73,6 +73,19 @@ namespace Archer.DataSecurity.Filter
             {
                 Left = translator.Translate(Left);
                 Right = translator.Translate(Right);
+                // Handle null case
+                if (Left is ValueOrReference && Right is ValueOrReference)
+                {
+                    var lVal = Left as ValueOrReference;
+                    var rVal = Right as ValueOrReference;
+                    if (lVal.Type != rVal.Type)
+                    {   // Type are different
+                        if (rVal.Type.IsAssignableFrom(lVal.Type))
+                            rVal.Type = lVal.Type;
+                        else if (lVal.Type.IsAssignableFrom(rVal.Type))
+                            lVal.Type = rVal.Type;
+                    }
+                }
             }
         }
     }
@@ -276,7 +289,7 @@ namespace Archer.DataSecurity.Filter
 
         public override Expression ToLinq(ToLinqContext ctx)
         {
-            return Expression.Constant(Value);
+            return Expression.Constant(Value, Type);
         }
     }
 

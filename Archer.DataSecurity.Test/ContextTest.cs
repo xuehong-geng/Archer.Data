@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
 using System.Linq;
+using System.Linq.Expressions;
 using Archer.DataSecurity.Filter;
 using Archer.DataSecurity.Model;
 using Archer.DataSecurity.Service;
@@ -98,6 +99,7 @@ namespace Archer.DataSecurity.Test
 
         protected static AccessRule[] AccessRules = new[]
         {
+            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null" },
             new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male'" },
             new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female'" },
             new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学'" },
@@ -186,15 +188,22 @@ namespace Archer.DataSecurity.Test
             PrepareDomainRules();
             var db = new SchoolDbContext("test");
             var mgr = new DataSecurityManager("test");
-            // Grant to role
+            // 在没有设置Constraint前，角色不具备任何的访问权限
+            mgr.DelRoleConstraints("Admin");
+            var all = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.AreEqual(all.Count(), 0);
+            // 设置全部权限
+            mgr.AddRoleConstraint("Admin", "Sex_All_All");
+            all = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.AreEqual(all.Count(), db.Students.Count());
+            // 设置男性访问
+            mgr.DelRoleConstraint("Admin", "Sex_All_All");
             mgr.AddRoleConstraint("Admin", "Sex_Male_All");
-            // Query
             var query = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
             Assert.IsTrue(query.All(a => a.Sex == "Male"));
-            // Change rule
+            // 改为女性访问
             mgr.DelRoleConstraint("Admin", "Sex_Male_All");
             mgr.AddRoleConstraint("Admin", "Sex_Female_All");
-            // Requery
             query = db.Students.FilterForRole("Admin", AccessType.FullAccess);
             Assert.IsTrue(query.All(a => a.Sex == "Female"));
             mgr.DelRoleConstraint("Admin", "Sex_Female_All");
