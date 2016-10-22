@@ -99,7 +99,7 @@ namespace Archer.DataSecurity.Service
                     try
                     {
                         var exp = Parser.ParseExpression(rule.Filter);
-                        //exp.Translate(translator);
+                        exp.Translate(translator);
                         acceptRules.Add(exp);
                     }
                     catch (Exception err)
@@ -145,7 +145,7 @@ namespace Archer.DataSecurity.Service
                     try
                     {
                         var exp = Parser.ParseExpression(rule.Filter);
-                        //exp.Translate(translator);
+                        exp.Translate(translator);
                         acceptRules.Add(exp);
                     }
                     catch (Exception err)
@@ -219,6 +219,26 @@ namespace Archer.DataSecurity.Service
                 db.SaveChanges();
                 return rule.AccessRuleID;
             }
+        }
+
+        public void AddOrUpdateAccessRule(AccessRule rule)
+        {
+            using (var db = OpenDb())
+            {
+                var exist = db.AccessRules.FirstOrDefault(a => a.AccessRuleID == rule.AccessRuleID);
+                if (exist == null)
+                {
+                    db.AccessRules.Add(rule);
+                }
+                else
+                {
+                    exist.AccessRuleName = rule.AccessRuleName;
+                    exist.AccessType = rule.AccessType;
+                    exist.Resource = rule.Resource;
+                    exist.Filter = rule.Filter;
+                }
+                db.SaveChanges();
+            }    
         }
 
         public void DeleteAccessRule(string id)

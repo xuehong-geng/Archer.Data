@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
 using System.Linq;
 using Archer.DataSecurity.Filter;
@@ -22,6 +24,25 @@ namespace Archer.DataSecurity.Test
         public string PhoneNumber { get; set; }
         public string Email { get; set; }
         public string Address { get; set; }
+
+        public virtual ICollection<Score> CourseScores { get; set; }
+    }
+
+    public class Score
+    {
+        [Key]
+        [Column(Order = 0)]
+        public string StudentId { get; set; }
+        [Key]
+        [Column(Order = 1)]
+        public string Course { get; set; }
+        [Key]
+        [Column(Order = 2)]
+        public string Semester { get; set; }
+        public double Value { get; set; }
+
+        [ForeignKey("StudentId")]
+        public virtual Student Student { get; set; }
     }
 
     public class SchoolDbContext : DbContext
@@ -37,69 +58,193 @@ namespace Archer.DataSecurity.Test
         }
 
         public DbSet<Student> Students { get; set; }
+        public DbSet<Score> Scores { get; set; }
     }
 
     [TestClass]
     public class ContextTest
     {
-        [TestMethod]
-        public void TestFilteredEntitySet()
+        protected static Student[] Students = new[]
         {
+            new Student { ID = "张山", Name = "张山", Address = "广州番禹区张山家", Birthday = DateTime.Now, Email = "张山@test.com", PhoneNumber = "12303939999", Sex = "Male" },
+            new Student { ID = "王二", Name = "王二", Address = "广州番禹区王二家", Birthday = DateTime.Now, Email = "王二@test.com", PhoneNumber = "12303939999", Sex = "Male" },
+            new Student { ID = "李娟", Name = "李娟", Address = "广州番禹区李娟家", Birthday = DateTime.Now, Email = "李娟@test.com", PhoneNumber = "12303939999", Sex = "Female" },
+            new Student { ID = "赵燕", Name = "赵燕", Address = "广州番禹区赵燕家", Birthday = DateTime.Now, Email = "赵燕@test.com", PhoneNumber = "12303939999", Sex = "Female" },
+        };
 
+        protected static Score[] Scores = new[]
+        {
+            new Score {StudentId = "张山", Course = "数学", Semester = "初一上学期", Value = 95},
+            new Score {StudentId = "张山", Course = "语文", Semester = "初二上学期", Value = 85},
+            new Score {StudentId = "王二", Course = "数学", Semester = "初二上学期", Value = 55},
+            new Score {StudentId = "王二", Course = "语文", Semester = "初一上学期", Value = 58},
+            new Score {StudentId = "李娟", Course = "数学", Semester = "初二上学期", Value = 69},
+            new Score {StudentId = "李娟", Course = "语文", Semester = "初一上学期", Value = 45},
+            new Score {StudentId = "赵燕", Course = "数学", Semester = "初二上学期", Value = 93},
+            new Score {StudentId = "赵燕", Course = "语文", Semester = "初一上学期", Value = 95},
+        };
+
+        protected static DomainType[] DomainTypes = new[]
+        {
+            new DomainType { DomainTypeID = "Sex", DomainTypeName = "性别" },
+            new DomainType { DomainTypeID = "Course", DomainTypeName = "科目"},
+            new DomainType { DomainTypeID = "Score", DomainTypeName = "成绩"}
+        };
+
+        protected static DomainTypeEntityMap[] DomainTypeMaps = new[]
+        {
+            new DomainTypeEntityMap { DomainTypeID = "Score", EntityName = "Archer.DataSecurity.Test.Score", FieldName = "Value" },
+        };
+
+        protected static AccessRule[] AccessRules = new[]
+        {
+            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male'" },
+            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female'" },
+            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学'" },
+            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文'" },
+        };
+
+        protected void PrepareTestData()
+        {
+            var db = new SchoolDbContext("test");
+            foreach (var student in Students)
+            {
+                if (db.Students.All(a => a.ID != student.ID)) db.Students.Add(student);
+            }
+            foreach (var score in Scores)
+            {
+                if (
+                    db.Scores.All(
+                        a => !(a.StudentId == score.StudentId && a.Course == score.Course && a.Semester == score.Semester)))
+                    db.Scores.Add(score);
+            }
+            db.SaveChanges();
+        }
+
+        protected void ClearTestData()
+        {
+            var db = new SchoolDbContext("test");
+            foreach (var score in Scores)
+            {
+                var s = db.Scores.FirstOrDefault(
+                    a =>
+                        a.StudentId == score.StudentId && a.Course == score.Course && a.Semester == score.Semester);
+                if (s != null)
+                    db.Scores.Remove(s);
+            }
+            foreach (var student in Students)
+            {
+                var s = db.Students.FirstOrDefault(a => a.ID == student.ID);
+                if (s != null)
+                    db.Students.Remove(s);
+            }
+            db.SaveChanges();
+        }
+
+        protected void PrepareDomainRules()
+        {
+            var dmm = new DomainManager("test");
+            foreach (var domainType in DomainTypes)
+            {
+                dmm.CreateOrUpdateDomainType(domainType.DomainTypeID, domainType.DomainTypeName);
+            }
+            foreach (var map in DomainTypeMaps)
+            {
+                dmm.MapDomainTypeToEntity(map.DomainTypeID, map.EntityName, map.FieldName);
+            }
+            var mgr = new DataSecurityManager("test");
+            foreach (var rule in AccessRules)
+            {
+                mgr.AddOrUpdateAccessRule(rule);
+            }
+        }
+
+        protected void ClearDomainRules()
+        {
+            var mgr = new DataSecurityManager("test");
+            foreach (var rule in AccessRules)
+            {
+                mgr.DeleteAccessRule(rule.AccessRuleID);
+            }
+            var dmm = new DomainManager("test");
+            foreach (var map in DomainTypeMaps)
+            {
+                dmm.UnmapDomainTypeFromEntity(map.DomainTypeID, map.EntityName);
+            }
+            foreach (var domainType in DomainTypes)
+            {
+                dmm.DeleteDomainType(domainType.DomainTypeID);
+            }
+        }
+
+        [TestMethod]
+        public void TestQueryConstraintWithSex()
+        {
             DataSecurityManager.InitializeDefaultManager("test");
             // Prepare test data
+            PrepareTestData();
+            PrepareDomainRules();
             var db = new SchoolDbContext("test");
-            db.Students.Add(new Student
-            {
-                ID = Guid.NewGuid().ToString(),
-                Name = "TEST",
-                Address = "TEST",
-                Birthday = DateTime.Now,
-                Email = "TEST@dee.com",
-                PhoneNumber = "12303939999",
-                Sex = "Male"
-            });
-            db.Students.Add(new Student
-            {
-                ID = Guid.NewGuid().ToString(),
-                Name = "TEST",
-                Address = "TEST",
-                Birthday = DateTime.Now,
-                Email = "TEST@dee.com",
-                PhoneNumber = "12303939999",
-                Sex = "Female"
-            });
-            db.SaveChanges();
-            // Create rule expressions
-            var expMale = Parser.ParseExpression("Sex == 'Male'");
-            var expFemale = Parser.ParseExpression("Sex == 'Female'");
-            // Add rule
             var mgr = new DataSecurityManager("test");
-            var ruleMale = mgr.CreateAccessRule("Male", expMale, AccessType.FullAccess);
-            var ruleFemale = mgr.CreateAccessRule("Female", expFemale, AccessType.FullAccess);
-            // Create domain type
-            var dmgr = new DomainManager("test");
-            dmgr.CreateOrUpdateDomainType("Sex","性别");
             // Grant to role
-            mgr.AddRoleConstraint("Admin", ruleMale);
+            mgr.AddRoleConstraint("Admin", "Sex_Male_All");
             // Query
             var query = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
             Assert.IsTrue(query.All(a => a.Sex == "Male"));
             // Change rule
-            mgr.DelRoleConstraint("Admin", ruleMale);
-            mgr.AddRoleConstraint("Admin", ruleFemale);
+            mgr.DelRoleConstraint("Admin", "Sex_Male_All");
+            mgr.AddRoleConstraint("Admin", "Sex_Female_All");
             // Requery
             query = db.Students.FilterForRole("Admin", AccessType.FullAccess);
             Assert.IsTrue(query.All(a => a.Sex == "Female"));
-            mgr.DelRoleConstraint("Admin", ruleFemale);
+            mgr.DelRoleConstraint("Admin", "Sex_Female_All");
             // Clear test data
-            mgr.DeleteAccessRule(ruleMale);
-            mgr.DeleteAccessRule(ruleFemale);
-            foreach (var st in db.Students.Where(a => a.Name == "TEST").ToList())
+            ClearDomainRules();
+            ClearTestData();
+        }
+
+        [TestMethod]
+        public void TestConstraintOnSexAndScore()
+        {
+            DataSecurityManager.InitializeDefaultManager("test");
+            // Prepare test data
+            PrepareTestData();
+            PrepareDomainRules();
+            var db = new SchoolDbContext("test");
+            var mgr = new DataSecurityManager("test");
+            // Grant to role. 只允许Admin访问男生数据，数学成绩
+            mgr.AddRoleConstraint("Admin", "Sex_Male_All");
+            mgr.AddRoleConstraint("Admin", "Course_Math_Read");
+            // 单查学生数据，应只有男生的数据查出
+            var students = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.IsTrue(students.All(a => a.Sex == "Male"));
+            Console.WriteLine("\n学生：");
+            foreach (var student in students.ToList())
             {
-                db.Students.Remove(st);
+                Console.WriteLine("{0},{1}",student.Name, student.Sex);
             }
-            db.SaveChanges();
+            // 单查成绩数据，应只有数学的成绩查出
+            var scores = db.Scores.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.IsTrue(scores.All(a => a.Course == "数学"));
+            Console.WriteLine("\n成绩：");
+            foreach (var score in scores.ToList())
+            {
+                Console.WriteLine("{0}: {1}: {2}",score.Student.Name, score.Course, score.Value);
+            }
+            // 联合查询：查出所有成绩在60分以上的同学。此时因只查出“数学成绩在60分以上的男同学”
+            var studentsScoreBt60 = from s in students
+                join c in scores on s.ID equals c.StudentId
+                where c.Value > 60
+                select s;
+            Assert.IsTrue(studentsScoreBt60.All(a => a.Sex == "Male"));
+            Console.WriteLine("\n成绩60分以上的学生：");
+            foreach (var student in studentsScoreBt60.ToList())
+            {
+                Console.WriteLine("{0},{1}", student.Name, student.Sex);
+            }
+            // Clear test data
+            ClearDomainRules();
+            ClearTestData();
         }
     }
 }
