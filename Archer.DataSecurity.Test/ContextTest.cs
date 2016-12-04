@@ -102,8 +102,9 @@ namespace Archer.DataSecurity.Test
             new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null" },
             new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male'" },
             new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female'" },
-            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学'" },
+            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "(Course == '数学' || Course == '语文')" },
             new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文'" },
+            new AccessRule { AccessRuleID = "No_Course", AccessRuleName = "操作不存在字段", AccessType = AccessType.FullAccess, Filter = "NoCourse == '语文' || Sex == 'Female'" },
         };
 
         protected void PrepareTestData()
@@ -223,6 +224,7 @@ namespace Archer.DataSecurity.Test
             var mgr = new DataSecurityManager("test");
             // Grant to role. 只允许Admin访问男生数据，数学成绩
             mgr.AddRoleConstraint("Admin", "Sex_Male_All");
+            mgr.AddRoleConstraint("Admin", "No_Course");  //当不存在的字段出现在表达式2次，无法解析(需求是单个排除不存在的字段条件，不要整体都排除)   //andy
             mgr.AddRoleConstraint("Admin", "Course_Math_Read");
             // 单查学生数据，应只有男生的数据查出
             var students = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
@@ -230,21 +232,21 @@ namespace Archer.DataSecurity.Test
             Console.WriteLine("\n学生：");
             foreach (var student in students.ToList())
             {
-                Console.WriteLine("{0},{1}",student.Name, student.Sex);
+                Console.WriteLine("{0},{1}", student.Name, student.Sex);
             }
             // 单查成绩数据，应只有数学的成绩查出
             var scores = db.Scores.FilterForRole("Admin", AccessType.ReadOnly);
-            Assert.IsTrue(scores.All(a => a.Course == "数学"));
+            Assert.IsTrue(scores.All(a => a.Course == "数学" || a.Course == "语文"));
             Console.WriteLine("\n成绩：");
             foreach (var score in scores.ToList())
             {
-                Console.WriteLine("{0}: {1}: {2}",score.Student.Name, score.Course, score.Value);
+                Console.WriteLine("{0}: {1}: {2}", score.Student.Name, score.Course, score.Value);
             }
             // 联合查询：查出所有成绩在60分以上的同学。此时因只查出“数学成绩在60分以上的男同学”
             var studentsScoreBt60 = from s in students
-                join c in scores on s.ID equals c.StudentId
-                where c.Value > 60
-                select s;
+                                    join c in scores on s.ID equals c.StudentId
+                                    where c.Value > 60
+                                    select s;
             Assert.IsTrue(studentsScoreBt60.All(a => a.Sex == "Male"));
             Console.WriteLine("\n成绩60分以上的学生：");
             foreach (var student in studentsScoreBt60.ToList())
