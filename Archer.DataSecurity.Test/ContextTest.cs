@@ -104,7 +104,7 @@ namespace Archer.DataSecurity.Test
             new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female'" },
             new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "(Course == '数学' && Course == '语文') && Sex != null" },
             new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文'" },
-            new AccessRule { AccessRuleID = "No_Course", AccessRuleName = "操作不存在字段", AccessType = AccessType.FullAccess, Filter = "NoCourse == '语文' && Sex == 'Female'" },
+            new AccessRule { AccessRuleID = "No_Course", AccessRuleName = "操作不存在字段", AccessType = AccessType.FullAccess, Filter = "NoCourse == '语文' && NoCourse == '数学'" },
         };
 
         protected void PrepareTestData()
@@ -223,9 +223,9 @@ namespace Archer.DataSecurity.Test
             var db = new SchoolDbContext("test");
             var mgr = new DataSecurityManager("test");
             // Grant to role. 只允许Admin访问男生数据，数学成绩
-            mgr.AddRoleConstraint("Admin", "Sex_Male_All");
+            //mgr.AddRoleConstraint("Admin", "Sex_Male_All");
             mgr.AddRoleConstraint("Admin", "No_Course");  //当不存在的字段出现在表达式2次，无法解析(需求是单个排除不存在的字段条件，不要整体都排除)   //andy
-            mgr.AddRoleConstraint("Admin", "Course_Math_Read");
+            //mgr.AddRoleConstraint("Admin", "Course_Math_Read");
             // 单查学生数据，应只有男生的数据查出
             var students = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
             //Assert.IsTrue(students.All(a => a.Sex == "Male"));
