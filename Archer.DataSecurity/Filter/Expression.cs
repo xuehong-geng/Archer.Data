@@ -139,11 +139,20 @@ namespace Archer.DataSecurity.Filter
 
         public override Expression ToLinq(ToLinqContext ctx)
         {
-            ThrowIfInvalid(); var left = Left.ToLinq(ctx);
+            ThrowIfInvalid();
+            var left = Left.ToLinq(ctx);
             var right = Right.ToLinq(ctx);
             //如果值为空，说明表中不存在这个字段，直接返回空，外层则忽略，不添加到查询条件中
-            if (left == null || right == null)
+            if (left == null && right == null)
                 return null;
+            else if (left == null && right != null)
+            {
+                return Right.ToLinq(ctx);
+            }
+            else if (left != null && right == null)
+            {
+                return Left.ToLinq(ctx);
+            }
 
             return Expression.And(left, right);
         }
