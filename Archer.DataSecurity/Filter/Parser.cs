@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Archer.DataSecurity.Filter
 {
@@ -90,7 +91,7 @@ namespace Archer.DataSecurity.Filter
 
         public static bool IsBlank(char cr)
         {
-            string c = new string(cr,1);
+            string c = new string(cr, 1);
             if (c == Constants.BLANK ||
                 c == Constants.RETURN ||
                 c == Constants.NEWLINE ||
@@ -126,20 +127,20 @@ namespace Archer.DataSecurity.Filter
                  strText.Substring(strText.Length - 1, 1) == "\""))
             {
                 // It's a string const
-                type = typeof (string);
+                type = typeof(string);
                 return true;
             }
             else if (strText.Equals("true", StringComparison.OrdinalIgnoreCase) ||
                      strText.Equals("false", StringComparison.OrdinalIgnoreCase))
             {
                 // It's a boolean
-                type = typeof (bool);
+                type = typeof(bool);
                 return true;
             }
             else if (strText.Equals("null", StringComparison.OrdinalIgnoreCase))
             {
                 // It's a null
-                type = typeof (object);
+                type = typeof(object);
                 return true;
             }
             else
@@ -173,17 +174,17 @@ namespace Archer.DataSecurity.Filter
                 {
                     // It's a number
                     if (iDotCnt > 0)
-                        type = typeof (double);
+                        type = typeof(double);
                     else if (iDigitCnt >= 10)
-                        type = typeof (long);
+                        type = typeof(long);
                     else
-                        type = typeof (int);
+                        type = typeof(int);
                     return true;
                 }
                 else
                 {
                     // It's not a number, must be a special variable or sub expression
-                    type = typeof (object);
+                    type = typeof(object);
                     return false;
                 }
             }
@@ -198,12 +199,12 @@ namespace Archer.DataSecurity.Filter
             }
 
             string str = Text.Trim();
-            if (vt == typeof (string))
+            if (vt == typeof(string))
             {
                 str = str.Substring(1, str.Length - 2);
                 return str;
             }
-            else if (vt == typeof (bool))
+            else if (vt == typeof(bool))
             {
                 return str.Equals("true", StringComparison.OrdinalIgnoreCase) ? true : false;
             }
@@ -362,7 +363,7 @@ namespace Archer.DataSecurity.Filter
                         else
                         {
                             pLast = oprStack.Last();
-                            oprStack.RemoveAt(oprStack.Count-1);
+                            oprStack.RemoveAt(oprStack.Count - 1);
                         }
                         if (pLast == null)
                             throw new InvalidExpressionException("Right bracket has no left bracket or content!");
@@ -386,7 +387,7 @@ namespace Archer.DataSecurity.Filter
                         {
                             while (pLast.Text != Constants.OPR_LB && !pOpr.IsHigherThan(pLast))
                             {   // New operator is not higher than old one, pop out old one
-                                oprStack.RemoveAt(oprStack.Count-1);
+                                oprStack.RemoveAt(oprStack.Count - 1);
                                 Suffix.Add(pLast);
                                 if (oprStack.Count < 1)
                                     break;
@@ -401,7 +402,7 @@ namespace Archer.DataSecurity.Filter
             while (oprStack.Count > 0)
             {
                 Suffix.Add(oprStack.Last());
-                oprStack.RemoveAt(oprStack.Count-1);
+                oprStack.RemoveAt(oprStack.Count - 1);
             }
 
             return Suffix;
@@ -411,11 +412,11 @@ namespace Archer.DataSecurity.Filter
         {
             if (opr.Text == Constants.OPR_EQUAL)
                 return new Equals();
-            else if(opr.Text == Constants.OPR_NOTEQUAL)
+            else if (opr.Text == Constants.OPR_NOTEQUAL)
                 return new NotEquals();
-            else if(opr.Text == Constants.OPR_AND)
+            else if (opr.Text == Constants.OPR_AND)
                 return new And();
-            else if(opr.Text == Constants.OPR_OR)
+            else if (opr.Text == Constants.OPR_OR)
                 return new Or();
             else if (opr.Text == Constants.OPR_IN)
                 return new In();
@@ -531,7 +532,7 @@ namespace Archer.DataSecurity.Filter
                     break;
                 if (pItem is Operand)
                 {   // Next one is a operand
-                    if (stack.Count > 0 && stack[stack.Count-1] is Operand)
+                    if (stack.Count > 0 && stack[stack.Count - 1] is Operand)
                     {   // Last one is a operand too, syntax failed
                         throw new InvalidExpressionException(
                             string.Format("Operator missing between two operands! Last operands : {0}.", pItem.Text));
@@ -553,8 +554,44 @@ namespace Archer.DataSecurity.Filter
 
         public static Item ParseExpression(string exp)
         {
+            //增加一步调用，解决IN语句报错的问题
+            exp = FixEXP(exp);
             var tokens = Parse(exp);
             return CreateExpressionTree(tokens);
+        }
+
+        /// <summary>
+        /// 解决IN语句出错的问题
+        /// </summary>
+        /// <param name="exp"></param>
+        /// <returns></returns>
+        public static string FixEXP(string exp)
+        {
+            string e = exp;
+            string In = " in ";
+
+            int i = Regex.Split(e, In).Length;
+            int count = 1;
+            if (i > count)
+            {
+                while (count < i)
+                {
+                    string filterName = Regex.Split(e, In)[count - 1].Split(' ').Last();
+                    string[] instr = Regex.Split(e, In)[count].Split(' ')[0].Replace("[", string.Empty).Replace("]", string.Empty).Split(',');
+                    string fixstr = string.Empty; // filterName + " = " 
+                    for (int index = 0; index < instr.Length; index++)
+                    {
+                        if (index == 0)
+                            fixstr = fixstr + filterName + " == " + instr[index];
+                        else
+                            fixstr = fixstr + " || " + filterName + " == " + instr[index];
+
+                    }
+                    e = e.Replace(filterName + In + Regex.Split(e, In)[count].Split(' ')[0], fixstr);
+                    count++;
+                }
+            }
+            return e;
         }
     }
 }
