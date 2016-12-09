@@ -83,7 +83,15 @@ namespace Archer.DataSecurity.Test
             new Score {StudentId = "李娟", Course = "语文", Semester = "初一上学期", Value = 45},
             new Score {StudentId = "赵燕", Course = "数学", Semester = "初二上学期", Value = 93},
             new Score {StudentId = "赵燕", Course = "语文", Semester = "初一上学期", Value = 95},
-        };
+            new Score {StudentId = "张山", Course = "化学", Semester = "初一上学期", Value = 95},
+            new Score {StudentId = "张山", Course = "历史", Semester = "初二上学期", Value = 85},
+            new Score {StudentId = "王二", Course = "化学", Semester = "初二上学期", Value = 55},
+            new Score {StudentId = "王二", Course = "历史", Semester = "初一上学期", Value = 58},
+            new Score {StudentId = "李娟", Course = "化学", Semester = "初二上学期", Value = 69},
+            new Score {StudentId = "李娟", Course = "历史", Semester = "初一上学期", Value = 45},
+            new Score {StudentId = "赵燕", Course = "化学", Semester = "初二上学期", Value = 93},
+            new Score {StudentId = "赵燕", Course = "历史", Semester = "初一上学期", Value = 95},
+       };
 
         protected static DomainType[] DomainTypes = new[]
         {
@@ -99,11 +107,12 @@ namespace Archer.DataSecurity.Test
 
         protected static AccessRule[] AccessRules = new[]
         {
-            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null" },
-            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male'" },
-            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female'" },
-            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学'" },
-            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文'" },
+            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null " },
+            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male' " },
+            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female' " },
+            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' " },
+            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' " },
+            new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] " }
         };
 
         protected void PrepareTestData()

@@ -298,8 +298,10 @@ namespace Archer.DataSecurity.Filter
             int iCur = iPos;
             if (Token.IsBlank(exp[iCur]))
             {   // Start with blank char, overcome all black chars
-                while (Token.IsBlank(exp[iCur]) && iCur < iTotal)
+                while (iCur < iTotal && Token.IsBlank(exp[iCur]))
                     iCur++;
+                if (iCur < iTotal)
+                    return null;
             }
             int iLast = iCur;
             string strItem = "";
