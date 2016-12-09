@@ -110,6 +110,7 @@ namespace Archer.DataSecurity.Test
         {
             new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null " },
             new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male' " },
+            new AccessRule { AccessRuleID = "Sex_Male_Math_Read", AccessRuleName = "查询男性数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Sex == 'Male' && Course == '数学'" },
             new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female' " },
             new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' " },
             new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' " },
@@ -309,6 +310,40 @@ namespace Archer.DataSecurity.Test
             foreach (var score in scores.ToList())
             {
                 Console.WriteLine("{0}: {1}: {2}", score.Student.Name, score.Course, score.Value);
+            }
+            // Clear test data
+            ClearDomainRules();
+            ClearTestData();
+        }
+
+        [TestMethod]
+        public void TestRemoveWiderCondition()
+        {
+            DataSecurityManager.InitializeDefaultManager("test");
+            // Prepare test data
+            PrepareTestData();
+            PrepareDomainRules();
+            var db = new SchoolDbContext("test");
+            var mgr = new DataSecurityManager("test");
+            // Grant to role. 同时授予数学和（数学及男生）两个权限
+            mgr.AddRoleConstraint("Admin", "Sex_Male_Math_Read");
+            mgr.AddRoleConstraint("Admin", "Course_Math_Read");
+            // 联合查学生成绩，应只有男生的数学成绩被列出
+            var set = from s in db.Students
+                      join c in db.Scores on s.ID equals c.StudentId
+                      select new
+                      {
+                          s.Name,
+                          s.Sex,
+                          c.Course,
+                          c.Value
+                      };
+            var scores = set.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.IsTrue(scores.All(a => (a.Course == "数学" && a.Sex == "Male")));
+            Console.WriteLine("\n成绩：");
+            foreach (var score in scores.ToList())
+            {
+                Console.WriteLine("{0}: {1}: {2}", score.Name, score.Course, score.Value);
             }
             // Clear test data
             ClearDomainRules();

@@ -288,6 +288,43 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
+    public class VariableCounter : IEnumerator
+    {
+        private Dictionary<string, int> _counter = new Dictionary<string, int>();
+
+        public bool Enumerate(Item item)
+        {
+            if (item is Variable)
+            {
+                var variable = item as Variable;
+                if (_counter.ContainsKey(variable.Name))
+                {
+                    var cnt = _counter[variable.Name];
+                    cnt++;
+                    _counter[variable.Name] = cnt;
+                }
+                else
+                {
+                    _counter[variable.Name] = 1;
+                }
+            }
+            return true;
+        }
+
+        public ICollection<string> GetVariables()
+        {
+            return _counter.Keys;
+        }
+
+        public int GetVariableCount(string name)
+        {
+            if (_counter.ContainsKey(name))
+                return _counter[name];
+            else
+                return 0;
+        }
+    }
+
     public static class Parser
     {
         private static Token GetNext(string exp, int iTotal, ref int iPos)
@@ -559,6 +596,33 @@ namespace Archer.DataSecurity.Filter
         {
             var tokens = Parse(exp);
             return CreateExpressionTree(tokens);
+        }
+
+        /// <summary>
+        /// Check if exp1 is sub set of exp2
+        /// </summary>
+        /// <param name="exp1"></param>
+        /// <param name="exp2"></param>
+        /// <returns>
+        /// 1 : exp1 is sub set of exp2
+        /// 0 : exp1 and exp2 is not related
+        /// -1 : exp2 is sub set of exp1
+        /// </returns>
+        public static int CheckConstraintRelation(Item exp1, Item exp2)
+        {
+            var counter1 = new VariableCounter();
+            var counter2 = new VariableCounter();
+            exp1.Enumerate(counter1);
+            exp2.Enumerate(counter2);
+            var vCol1 = counter1.GetVariables();
+            var vCol2 = counter2.GetVariables();
+            var interCol = vCol1.Intersect(vCol2);
+            if (interCol.Count() < vCol1.Count() && interCol.Count() < vCol2.Count())
+                return 0;
+            else if (interCol.Count() == vCol1.Count() && interCol.Count() < vCol2.Count())
+                return 1;
+            else
+                return -1;
         }
     }
 }

@@ -61,6 +61,13 @@ namespace Archer.DataSecurity.Service
 
         private DomainTypeMap _map = null;
         private string _connectionString;
+        private bool _useStrictRule = true;
+
+        public bool UseStrictRule
+        {
+            get { return _useStrictRule; }
+            set { _useStrictRule = value; }
+        }
 
         public DataSecurityManager()
         {
@@ -108,6 +115,8 @@ namespace Archer.DataSecurity.Service
                             typeof(T).FullName, err.Message);
                     }
                 }
+                // Remove wider conditions
+                acceptRules = RemoveWiderConstraints(acceptRules);
                 // Merge those rules into single rule using OR operator
                 Item root = null;
                 while (acceptRules.Any())
@@ -129,6 +138,43 @@ namespace Archer.DataSecurity.Service
                 };
             }
         }
+
+        /// <summary>
+        /// Remove those constrains that has less fields in condition
+        /// </summary>
+        /// <param name="constraints"></param>
+        protected List<Item> RemoveWiderConstraints(List<Item> constraints)
+        {
+            if (!UseStrictRule)
+                return constraints;
+            List<Item> result = new List<Item>();
+            while(constraints.Any())
+            {
+                var exp1 = constraints.First();
+                constraints.RemoveAt(0);
+                foreach(var exp2 in constraints)
+                {
+                    var cmp = Parser.CheckConstraintRelation(exp1, exp2);
+                    if (cmp > 0)
+                    {   // exp1 is sub set of exp2, should drop exp1
+                        exp1 = null;
+                        break;
+                    }
+                    else if(cmp < 0)
+                    {   // exp2 is sub set of exp1, should drop exp2
+                        constraints.Remove(exp2);
+                    }
+                    else
+                    {
+                        // exp1 & exp2 should be all kept.
+                    }
+                }
+                if (exp1 != null)
+                    result.Add(exp1);
+            }
+            return result;
+        }
+
         public Rule GetRuleOnEntityForRole<T>(string[] roles, AccessType accessType) where T : class
         {
             using (var db = OpenDb())
@@ -154,6 +200,8 @@ namespace Archer.DataSecurity.Service
                             typeof(T).FullName, err.Message);
                     }
                 }
+                // Remove wider conditions
+                acceptRules = RemoveWiderConstraints(acceptRules);
                 // Merge those rules into single rule using OR operator
                 Item root = null;
                 while (acceptRules.Any())

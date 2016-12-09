@@ -14,6 +14,19 @@ namespace Archer.DataSecurity.Filter
         public ParameterExpression EntityReference { get; set; }
     }
 
+    /// <summary>
+    /// Interface of Expression enumerator
+    /// </summary>
+    public interface IEnumerator
+    {
+        /// <summary>
+        /// Enumerate one expression node
+        /// </summary>
+        /// <param name="item">Expression node</param>
+        /// <returns>Returns true if should continue; false if should stop.</returns>
+        bool Enumerate(Item item);
+    }
+
     public abstract class Item
     {
         public static MethodInfo GetContainsMethod()
@@ -41,6 +54,10 @@ namespace Archer.DataSecurity.Filter
 
         public abstract Expression ToLinq(ToLinqContext ctx);
         public abstract void Translate(IExpressionTranslator translator);
+        public virtual bool Enumerate(IEnumerator enumerator)
+        {
+            return enumerator.Enumerate(this);
+        }
 
         public Item Equals(Item val)
         {
@@ -106,6 +123,15 @@ namespace Archer.DataSecurity.Filter
                     }
                 }
             }
+        }
+
+        public override bool Enumerate(IEnumerator enumerator)
+        {
+            if (!enumerator.Enumerate(this))
+                return false;
+            if (!Left.Enumerate(enumerator))
+                return false;
+            return Right.Enumerate(enumerator);
         }
     }
 
@@ -226,6 +252,18 @@ namespace Archer.DataSecurity.Filter
                 newCol.Add(translator.Translate(item) as ValueOrReference);
             }
             _items = newCol;
+        }
+
+        public override bool Enumerate(IEnumerator enumerator)
+        {
+            if (!enumerator.Enumerate(this))
+                return false;
+            foreach (var item in _items)
+            {
+                if (!item.Enumerate(enumerator))
+                    return false;
+            }
+            return true;
         }
     }
 
