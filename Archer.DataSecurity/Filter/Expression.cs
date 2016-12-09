@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
@@ -15,6 +16,24 @@ namespace Archer.DataSecurity.Filter
 
     public abstract class Item
     {
+        public static MethodInfo GetContainsMethod()
+        {
+            var type = typeof(Enumerable);
+            MethodInfo containsMethod = null;
+            foreach (var m in type.GetMethods())
+            {
+                if (m.Name != "Contains")
+                    continue;
+                if (2 == m.GetParameters().Count())
+                {
+                    containsMethod = m;
+                    break;
+                }
+            }
+            var method = containsMethod.MakeGenericMethod(new Type[] { typeof(string) });
+            return method;
+        }
+
         public override string ToString()
         {
             return "?";
@@ -224,9 +243,8 @@ namespace Archer.DataSecurity.Filter
                 throw new InvalidOperationException("Right item of 'In' must be a set!");
             var set = Right as Set;
             var array = set.ToLinq(ctx);
-            var arrType = set.Type;
-            var memberType = arrType.GetMethod("Contains");
-            return Expression.Call(array, memberType, Left.ToLinq(ctx));
+            var memberType = GetContainsMethod();
+            return Expression.Call(null, memberType, array, Left.ToLinq(ctx));
         }
     }
 
@@ -244,9 +262,8 @@ namespace Archer.DataSecurity.Filter
                 throw new InvalidOperationException("Right item of 'In' must be a set!");
             var set = Right as Set;
             var array = set.ToLinq(ctx);
-            var arrType = set.Type;
-            var memberType = arrType.GetMethod("Contains");
-            var call = Expression.Call(array, memberType, Left.ToLinq(ctx));
+            var memberType = GetContainsMethod();
+            var call = Expression.Call(null, memberType, array, Left.ToLinq(ctx));
             return Expression.Not(call);
         }
     }
@@ -277,7 +294,8 @@ namespace Archer.DataSecurity.Filter
 
         public Constant(object val)
         {
-            Value = Convert.ChangeType(val, Type);
+            Value = val;
+            Type = val == null ? typeof(object) : val.GetType();
         }
 
         public override string ToString()

@@ -9,6 +9,7 @@ using Archer.DataSecurity.Filter;
 using Archer.DataSecurity.Model;
 using Archer.DataSecurity.Service;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Reflection;
 
 namespace Archer.DataSecurity.Test
 {
@@ -112,8 +113,9 @@ namespace Archer.DataSecurity.Test
             new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female' " },
             new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' " },
             new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' " },
-            new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] " }
-        };
+            new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] " },
+            new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] " }
+       };
 
         protected void PrepareTestData()
         {
@@ -259,6 +261,54 @@ namespace Archer.DataSecurity.Test
             foreach (var student in studentsScoreBt60.ToList())
             {
                 Console.WriteLine("{0},{1}", student.Name, student.Sex);
+            }
+            // Clear test data
+            ClearDomainRules();
+            ClearTestData();
+        }
+
+        [TestMethod]
+        public void TestInCondition()
+        {
+            DataSecurityManager.InitializeDefaultManager("test");
+            // Prepare test data
+            PrepareTestData();
+            PrepareDomainRules();
+            var db = new SchoolDbContext("test");
+            var mgr = new DataSecurityManager("test");
+            // Grant to role. 只允许Admin访问语文和历史数据
+            mgr.AddRoleConstraint("Admin", "Course_Yuwen_Lishi");
+            // 单查成绩数据，应只有语文和历史的成绩查出
+            var scores = db.Scores.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.IsTrue(scores.All(a => (a.Course == "语文" || a.Course == "历史")));
+            Console.WriteLine("\n成绩：");
+            foreach (var score in scores.ToList())
+            {
+                Console.WriteLine("{0}: {1}: {2}", score.Student.Name, score.Course, score.Value);
+            }
+            // Clear test data
+            ClearDomainRules();
+            ClearTestData();
+        }
+
+        [TestMethod]
+        public void TestNotInCondition()
+        {
+            DataSecurityManager.InitializeDefaultManager("test");
+            // Prepare test data
+            PrepareTestData();
+            PrepareDomainRules();
+            var db = new SchoolDbContext("test");
+            var mgr = new DataSecurityManager("test");
+            // Grant to role. 只允许Admin访问除了语文和历史外的数据
+            mgr.AddRoleConstraint("Admin", "Course_Not_Yuwen_Lishi");
+            // 单查成绩数据，应只有除语文和历史外的成绩查出
+            var scores = db.Scores.FilterForRole("Admin", AccessType.ReadOnly);
+            Assert.IsTrue(scores.All(a => (a.Course != "语文" && a.Course != "历史")));
+            Console.WriteLine("\n成绩：");
+            foreach (var score in scores.ToList())
+            {
+                Console.WriteLine("{0}: {1}: {2}", score.Student.Name, score.Course, score.Value);
             }
             // Clear test data
             ClearDomainRules();

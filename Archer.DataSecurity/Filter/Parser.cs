@@ -442,12 +442,14 @@ namespace Archer.DataSecurity.Filter
                 string txt = opr.Text.Trim();
                 string list = txt.Substring(1, txt.Length - 2); // Remove [ and ]
                 var items = list.Split(',');
-                var set = new Set(typeof(Array));
+                Set set = null;
                 foreach (var item in items)
                 {
                     var operand = new Operand(item.Trim());
-                    var i = CreateOperand(operand);
-                    set.Items.Add(i as ValueOrReference);
+                    var i = CreateOperand(operand) as ValueOrReference;
+                    if (set == null)
+                        set = new Set(i.Type);
+                    set.Items.Add(i);
                 }
                 return set;
             }
