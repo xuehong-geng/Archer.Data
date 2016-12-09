@@ -300,7 +300,7 @@ namespace Archer.DataSecurity.Filter
             {   // Start with blank char, overcome all black chars
                 while (iCur < iTotal && Token.IsBlank(exp[iCur]))
                     iCur++;
-                if (iCur < iTotal)
+                if (iCur >= iTotal)
                     return null;
             }
             int iLast = iCur;
