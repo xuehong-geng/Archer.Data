@@ -289,6 +289,43 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
+    public class VariableCounter : IEnumerator
+    {
+        private Dictionary<string, int> _counter = new Dictionary<string, int>();
+
+        public bool Enumerate(Item item)
+        {
+            if (item is Variable)
+            {
+                var variable = item as Variable;
+                if (_counter.ContainsKey(variable.Name))
+                {
+                    var cnt = _counter[variable.Name];
+                    cnt++;
+                    _counter[variable.Name] = cnt;
+                }
+                else
+                {
+                    _counter[variable.Name] = 1;
+                }
+            }
+            return true;
+        }
+
+        public ICollection<string> GetVariables()
+        {
+            return _counter.Keys;
+        }
+
+        public int GetVariableCount(string name)
+        {
+            if (_counter.ContainsKey(name))
+                return _counter[name];
+            else
+                return 0;
+        }
+    }
+
     public static class Parser
     {
         private static Token GetNext(string exp, int iTotal, ref int iPos)
@@ -299,8 +336,10 @@ namespace Archer.DataSecurity.Filter
             int iCur = iPos;
             if (Token.IsBlank(exp[iCur]))
             {   // Start with blank char, overcome all black chars
-                while (Token.IsBlank(exp[iCur]) && iCur < iTotal)
+                while (iCur < iTotal && Token.IsBlank(exp[iCur]))
                     iCur++;
+                if (iCur >= iTotal)
+                    return null;
             }
             int iLast = iCur;
             string strItem = "";
@@ -441,12 +480,14 @@ namespace Archer.DataSecurity.Filter
                 string txt = opr.Text.Trim();
                 string list = txt.Substring(1, txt.Length - 2); // Remove [ and ]
                 var items = list.Split(',');
-                var set = new Set(typeof(Array));
+                Set set = null;
                 foreach (var item in items)
                 {
                     var operand = new Operand(item.Trim());
-                    var i = CreateOperand(operand);
-                    set.Items.Add(i as ValueOrReference);
+                    var i = CreateOperand(operand) as ValueOrReference;
+                    if (set == null)
+                        set = new Set(i.Type);
+                    set.Items.Add(i);
                 }
                 return set;
             }
@@ -561,37 +602,32 @@ namespace Archer.DataSecurity.Filter
         }
 
         /// <summary>
-        /// 解决IN语句出错的问题
+        /// Check if exp1 is sub set of exp2
         /// </summary>
-        /// <param name="exp"></param>
-        /// <returns></returns>
-        public static string FixEXP(string exp)
+        /// <param name="exp1"></param>
+        /// <param name="exp2"></param>
+        /// <returns>
+        /// 1 : exp1 is sub set of exp2
+        /// 0 : exp1 and exp2 is not related
+        /// -1 : exp2 is sub set of exp1
+        /// </returns>
+        public static int CheckConstraintRelation(Item exp1, Item exp2)
         {
-            string e = exp;
-            string In = " in ";
-
-            int i = Regex.Split(e, In).Length;
-            int count = 1;
-            if (i > count)
-            {
-                while (count < i)
-                {
-                    string filterName = Regex.Split(e, In)[count - 1].Split(' ').Last();
-                    string[] instr = Regex.Split(e, In)[count].Split(' ')[0].Replace("[", string.Empty).Replace("]", string.Empty).Split(',');
-                    string fixstr = string.Empty; // filterName + " = " 
-                    for (int index = 0; index < instr.Length; index++)
-                    {
-                        if (index == 0)
-                            fixstr = fixstr + filterName + " == " + instr[index];
-                        else
-                            fixstr = fixstr + " || " + filterName + " == " + instr[index];
-
-                    }
+            var counter1 = new VariableCounter();
+            var counter2 = new VariableCounter();
+            exp1.Enumerate(counter1);
+            exp2.Enumerate(counter2);
+            var vCol1 = counter1.GetVariables();
+            var vCol2 = counter2.GetVariables();
+            var interCol = vCol1.Intersect(vCol2);
+            if (interCol.Count() < vCol1.Count() && interCol.Count() < vCol2.Count())
+                return 0;
+            else if (interCol.Count() == vCol1.Count() && interCol.Count() < vCol2.Count())
+                return 1;
+            else
+                return -1;
+        }
                     e = e.Replace(filterName + In + Regex.Split(e, In)[count].Split(' ')[0], fixstr);
                     count++;
-                }
-            }
-            return e;
-        }
     }
 }

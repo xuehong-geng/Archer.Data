@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
@@ -13,8 +14,39 @@ namespace Archer.DataSecurity.Filter
         public ParameterExpression EntityReference { get; set; }
     }
 
+    /// <summary>
+    /// Interface of Expression enumerator
+    /// </summary>
+    public interface IEnumerator
+    {
+        /// <summary>
+        /// Enumerate one expression node
+        /// </summary>
+        /// <param name="item">Expression node</param>
+        /// <returns>Returns true if should continue; false if should stop.</returns>
+        bool Enumerate(Item item);
+    }
+
     public abstract class Item
     {
+        public static MethodInfo GetContainsMethod()
+        {
+            var type = typeof(Enumerable);
+            MethodInfo containsMethod = null;
+            foreach (var m in type.GetMethods())
+            {
+                if (m.Name != "Contains")
+                    continue;
+                if (2 == m.GetParameters().Count())
+                {
+                    containsMethod = m;
+                    break;
+                }
+            }
+            var method = containsMethod.MakeGenericMethod(new Type[] { typeof(string) });
+            return method;
+        }
+
         public override string ToString()
         {
             return "?";
@@ -22,6 +54,10 @@ namespace Archer.DataSecurity.Filter
 
         public abstract Expression ToLinq(ToLinqContext ctx);
         public abstract void Translate(IExpressionTranslator translator);
+        public virtual bool Enumerate(IEnumerator enumerator)
+        {
+            return enumerator.Enumerate(this);
+        }
 
         public Item Equals(Item val)
         {
@@ -87,6 +123,15 @@ namespace Archer.DataSecurity.Filter
                     }
                 }
             }
+        }
+
+        public override bool Enumerate(IEnumerator enumerator)
+        {
+            if (!enumerator.Enumerate(this))
+                return false;
+            if (!Left.Enumerate(enumerator))
+                return false;
+            return Right.Enumerate(enumerator);
         }
     }
 
@@ -248,6 +293,18 @@ namespace Archer.DataSecurity.Filter
             }
             _items = newCol;
         }
+
+        public override bool Enumerate(IEnumerator enumerator)
+        {
+            if (!enumerator.Enumerate(this))
+                return false;
+            foreach (var item in _items)
+            {
+                if (!item.Enumerate(enumerator))
+                    return false;
+            }
+            return true;
+        }
     }
 
     public class In : Binary
@@ -264,9 +321,8 @@ namespace Archer.DataSecurity.Filter
                 throw new InvalidOperationException("Right item of 'In' must be a set!");
             var set = Right as Set;
             var array = set.ToLinq(ctx);
-            var arrType = set.Type;
-            var memberType = arrType.GetMethod("Contains");
-            return Expression.Call(array, memberType, Left.ToLinq(ctx));
+            var memberType = GetContainsMethod();
+            return Expression.Call(null, memberType, array, Left.ToLinq(ctx));
         }
     }
 
@@ -284,9 +340,8 @@ namespace Archer.DataSecurity.Filter
                 throw new InvalidOperationException("Right item of 'In' must be a set!");
             var set = Right as Set;
             var array = set.ToLinq(ctx);
-            var arrType = set.Type;
-            var memberType = arrType.GetMethod("Contains");
-            var call = Expression.Call(array, memberType, Left.ToLinq(ctx));
+            var memberType = GetContainsMethod();
+            var call = Expression.Call(null, memberType, array, Left.ToLinq(ctx));
             return Expression.Not(call);
         }
     }
@@ -317,7 +372,8 @@ namespace Archer.DataSecurity.Filter
 
         public Constant(object val)
         {
-            Value = Convert.ChangeType(val, Type);
+            Value = val;
+            Type = val == null ? typeof(object) : val.GetType();
         }
 
         public override string ToString()
