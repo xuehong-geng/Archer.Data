@@ -105,7 +105,7 @@ namespace Archer.DataSecurity.Service
                 {
                     try
                     {
-                        var exp = Parser.ParseExpression(rule.Filter.Trim());
+                        var exp = Parser.ParseExpression(rule.Filter);
                         exp.Translate(translator);
                         acceptRules.Add(exp);
                     }
@@ -235,8 +235,6 @@ namespace Archer.DataSecurity.Service
                 EntityType = typeof(T),
                 EntityReference = param
             });
-            if (exp == null)
-                return null;
             return Expression.Lambda<Func<T, bool>>(exp, param);
         }
 
@@ -251,8 +249,6 @@ namespace Archer.DataSecurity.Service
                 EntityType = typeof(T),
                 EntityReference = param
             });
-            if (exp == null)
-                return null;
             return Expression.Lambda<Func<T, bool>>(exp, param);
         }
 
@@ -290,7 +286,7 @@ namespace Archer.DataSecurity.Service
                     exist.Filter = rule.Filter;
                 }
                 db.SaveChanges();
-            }
+            }    
         }
 
         public void DeleteAccessRule(string id)

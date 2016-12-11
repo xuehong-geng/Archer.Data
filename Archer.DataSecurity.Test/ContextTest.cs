@@ -92,7 +92,7 @@ namespace Archer.DataSecurity.Test
             new Score {StudentId = "李娟", Course = "历史", Semester = "初一上学期", Value = 45},
             new Score {StudentId = "赵燕", Course = "化学", Semester = "初二上学期", Value = 93},
             new Score {StudentId = "赵燕", Course = "历史", Semester = "初一上学期", Value = 95},
-        };
+       };
 
         protected static DomainType[] DomainTypes = new[]
         {
@@ -108,15 +108,15 @@ namespace Archer.DataSecurity.Test
 
         protected static AccessRule[] AccessRules = new[]
         {
-            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null" },
-            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male'" },
+            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null " },
+            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male' " },
             new AccessRule { AccessRuleID = "Sex_Male_Math_Read", AccessRuleName = "查询男性数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Sex == 'Male' && Course == '数学'" },
-            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female'" },
-            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "(Course == '数学' && Course == '语文') && Sex != null" },
-            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文'" },
+            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female' " },
+            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' " },
+            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' " },
             new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] " },
             new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] " }
-        };
+       };
 
         protected void PrepareTestData()
         {
@@ -242,7 +242,7 @@ namespace Archer.DataSecurity.Test
             Console.WriteLine("\n学生：");
             foreach (var student in students.ToList())
             {
-                Console.WriteLine("{0},{1}", student.Name, student.Sex);
+                Console.WriteLine("{0},{1}",student.Name, student.Sex);
             }
             // 单查成绩数据，应只有数学的成绩查出
             var scores = db.Scores.FilterForRole("Admin", AccessType.ReadOnly);
@@ -250,13 +250,13 @@ namespace Archer.DataSecurity.Test
             Console.WriteLine("\n成绩：");
             foreach (var score in scores.ToList())
             {
-                Console.WriteLine("{0}: {1}: {2}", score.Student.Name, score.Course, score.Value);
+                Console.WriteLine("{0}: {1}: {2}",score.Student.Name, score.Course, score.Value);
             }
             // 联合查询：查出所有成绩在60分以上的同学。此时因只查出“数学成绩在60分以上的男同学”
             var studentsScoreBt60 = from s in students
-                                    join c in scores on s.ID equals c.StudentId
-                                    where c.Value > 60
-                                    select s;
+                join c in scores on s.ID equals c.StudentId
+                where c.Value > 60
+                select s;
             Assert.IsTrue(studentsScoreBt60.All(a => a.Sex == "Male"));
             Console.WriteLine("\n成绩60分以上的学生：");
             foreach (var student in studentsScoreBt60.ToList())
@@ -286,11 +286,11 @@ namespace Archer.DataSecurity.Test
             foreach (var score in scores.ToList())
             {
                 Console.WriteLine("{0}: {1}: {2}", score.Student.Name, score.Course, score.Value);
-    }
+            }
             // Clear test data
             ClearDomainRules();
             ClearTestData();
-}
+        }
 
         [TestMethod]
         public void TestNotInCondition()

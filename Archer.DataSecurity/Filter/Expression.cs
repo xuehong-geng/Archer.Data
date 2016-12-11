@@ -61,32 +61,32 @@ namespace Archer.DataSecurity.Filter
 
         public Item Equals(Item val)
         {
-            return new Equals { Left = this, Right = val };
+            return new Equals {Left = this, Right = val};
         }
 
         public Item NotEquals(Item val)
         {
-            return new NotEquals { Left = this, Right = val };
+            return new NotEquals {Left = this, Right = val};
         }
 
         public Item And(Item right)
         {
-            return new And { Left = this, Right = right };
+            return new And {Left = this, Right = right};
         }
 
         public Item Or(Item right)
         {
-            return new Or { Left = this, Right = right };
+            return new Or {Left = this, Right = right};
         }
 
         public Item In(Set set)
         {
-            return new In { Left = this, Right = set };
+            return new In {Left = this, Right = set};
         }
 
         public Item NotIn(Set set)
         {
-            return new NotIn { Left = this, Right = set };
+            return new NotIn {Left = this, Right = set};
         }
     }
 
@@ -145,13 +145,7 @@ namespace Archer.DataSecurity.Filter
         public override Expression ToLinq(ToLinqContext ctx)
         {
             ThrowIfInvalid();
-            var left = Left.ToLinq(ctx);
-            var right = Right.ToLinq(ctx);
-            //如果值为空，说明表中不存在这个字段，直接返回空，外层则忽略，不添加到查询条件中
-            if (left == null || right == null)
-                return null;
-
-            return Expression.Equal(left, right);
+            return Expression.Equal(Left.ToLinq(ctx), Right.ToLinq(ctx));
         }
     }
 
@@ -165,13 +159,7 @@ namespace Archer.DataSecurity.Filter
         public override Expression ToLinq(ToLinqContext ctx)
         {
             ThrowIfInvalid();
-            var left = Left.ToLinq(ctx);
-            var right = Right.ToLinq(ctx);
-            //如果值为空，说明表中不存在这个字段，直接返回空，外层则忽略，不添加到查询条件中
-            if (left == null || right == null)
-                return null;
-
-            return Expression.NotEqual(left, right);
+            return Expression.NotEqual(Left.ToLinq(ctx), Right.ToLinq(ctx));
         }
     }
 
@@ -185,21 +173,7 @@ namespace Archer.DataSecurity.Filter
         public override Expression ToLinq(ToLinqContext ctx)
         {
             ThrowIfInvalid();
-            var left = Left.ToLinq(ctx);
-            var right = Right.ToLinq(ctx);
-            //如果值为空，说明表中不存在这个字段，直接返回空，外层则忽略，不添加到查询条件中
-            if (left == null && right == null)
-                return null;
-            else if (left == null && right != null)
-            {
-                return Right.ToLinq(ctx);
-            }
-            else if (left != null && right == null)
-            {
-                return Left.ToLinq(ctx);
-            }
-
-            return Expression.And(left, right);
+            return Expression.And(Left.ToLinq(ctx), Right.ToLinq(ctx));
         }
     }
 
@@ -213,21 +187,7 @@ namespace Archer.DataSecurity.Filter
         public override Expression ToLinq(ToLinqContext ctx)
         {
             ThrowIfInvalid();
-            var left = Left.ToLinq(ctx);
-            var right = Right.ToLinq(ctx);
-            //如果值为空，说明表中不存在这个字段，直接返回空，外层则忽略，不添加到查询条件中
-            if (left == null && right == null)
-                return null;
-            else if (left == null && right != null)
-            {
-                return Right.ToLinq(ctx);
-            }
-            else if (left != null && right == null)
-            {
-                return Left.ToLinq(ctx);
-            }
-
-            return Expression.Or(left, right);
+            return Expression.Or(Left.ToLinq(ctx), Right.ToLinq(ctx));
         }
     }
 
@@ -352,7 +312,7 @@ namespace Archer.DataSecurity.Filter
 
         public ValueOrReference()
         {
-            Type = typeof(object);
+            Type = typeof (object);
         }
 
         public ValueOrReference(Type type)
@@ -409,13 +369,9 @@ namespace Archer.DataSecurity.Filter
         {
             // The variable must be the name of property of entity
             var propInfo = ctx.EntityType.GetProperty(Name, BindingFlags.Public | BindingFlags.Instance);
-            //andy 当字段在表中不存在,忽略
-            //if (propInfo == null)
-            //    throw new InvalidOperationException(string.Format("Property {0} does not exist in type {1}!", Name,
-            //        ctx.EntityType.FullName));
             if (propInfo == null)
-                return null;
-
+                throw new InvalidOperationException(string.Format("Property {0} does not exist in type {1}!", Name,
+                    ctx.EntityType.FullName));
             return Expression.MakeMemberAccess(ctx.EntityReference, propInfo);
         }
     }
