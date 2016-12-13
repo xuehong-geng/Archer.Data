@@ -152,6 +152,7 @@ namespace Archer.DataSecurity.Service
             {
                 var exp1 = constraints.First();
                 constraints.RemoveAt(0);
+                var itemToRemove = new List<Item>();
                 foreach(var exp2 in constraints)
                 {
                     var cmp = Parser.CheckConstraintRelation(exp1, exp2);
@@ -162,12 +163,16 @@ namespace Archer.DataSecurity.Service
                     }
                     else if(cmp < 0)
                     {   // exp2 is sub set of exp1, should drop exp2
-                        constraints.Remove(exp2);
+                        itemToRemove.Add(exp2);
                     }
                     else
                     {
                         // exp1 & exp2 should be all kept.
                     }
+                }
+                foreach(var rem in itemToRemove)
+                {
+                    constraints.Remove(rem);
                 }
                 if (exp1 != null)
                     result.Add(exp1);
