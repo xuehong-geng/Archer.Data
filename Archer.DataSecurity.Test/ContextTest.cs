@@ -115,7 +115,8 @@ namespace Archer.DataSecurity.Test
             new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' " },
             new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' " },
             new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] " },
-            new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] " }
+            new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] " },
+            new AccessRule { AccessRuleID = "Course_NotAll", AccessRuleName = "全部不存在的字段", AccessType = AccessType.FullAccess, Filter = "ID!='0' && SupplierCode!='0' && ProdCataCode!='0'" }
        };
 
         protected void PrepareTestData()
@@ -236,6 +237,8 @@ namespace Archer.DataSecurity.Test
             // Grant to role. 只允许Admin访问男生数据，数学成绩
             mgr.AddRoleConstraint("Admin", "Sex_Male_All");
             mgr.AddRoleConstraint("Admin", "Course_Math_Read");
+            //andy 测试全部不存在字段
+            mgr.AddRoleConstraint("Admin", "Course_NotAll");
             // 单查学生数据，应只有男生的数据查出
             var students = db.Students.FilterForRole("Admin", AccessType.ReadOnly);
             Assert.IsTrue(students.All(a => a.Sex == "Male"));
