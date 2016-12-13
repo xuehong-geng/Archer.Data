@@ -107,6 +107,10 @@ namespace Archer.DataSecurity.Filter
         {
             if (translator != null)
             {
+                // Translate children first
+                Left.Translate(translator);
+                Right.Translate(translator);
+                // Then trans late operands
                 Left = translator.Translate(Left);
                 Right = translator.Translate(Right);
                 // Handle null case
@@ -322,7 +326,7 @@ namespace Archer.DataSecurity.Filter
 
         public override void Translate(IExpressionTranslator translator)
         {
-            throw new InvalidOperationException("Value and Reference must not be translated by itself!");
+            // Value and Reference must not be translated by itself!
         }
     }
 
