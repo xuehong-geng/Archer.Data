@@ -53,7 +53,7 @@ namespace Archer.DataSecurity.Filter
         }
 
         public abstract Expression ToLinq(ToLinqContext ctx);
-        public abstract void Translate(IExpressionTranslator translator);
+        public abstract Item Translate(IExpressionTranslator translator);
         public virtual bool Enumerate(IEnumerator enumerator)
         {
             return enumerator.Enumerate(this);
@@ -103,30 +103,25 @@ namespace Archer.DataSecurity.Filter
                 throw new InvalidOperationException("Right expression of binary operation is null!");
         }
 
-        public override void Translate(IExpressionTranslator translator)
+        public override Item Translate(IExpressionTranslator translator)
         {
-            if (translator != null)
+            // Translate children first
+            Left = Left.Translate(translator);
+            Right = Right.Translate(translator);
+            // Handle null case
+            if (Left is ValueOrReference && Right is ValueOrReference)
             {
-                // Translate children first
-                Left.Translate(translator);
-                Right.Translate(translator);
-                // Then trans late operands
-                Left = translator.Translate(Left);
-                Right = translator.Translate(Right);
-                // Handle null case
-                if (Left is ValueOrReference && Right is ValueOrReference)
-                {
-                    var lVal = Left as ValueOrReference;
-                    var rVal = Right as ValueOrReference;
-                    if (lVal.Type != rVal.Type)
-                    {   // Type are different
-                        if (rVal.Type.IsAssignableFrom(lVal.Type))
-                            rVal.Type = lVal.Type;
-                        else if (lVal.Type.IsAssignableFrom(rVal.Type))
-                            lVal.Type = rVal.Type;
-                    }
+                var lVal = Left as ValueOrReference;
+                var rVal = Right as ValueOrReference;
+                if (lVal.Type != rVal.Type)
+                {   // Type are different
+                    if (rVal.Type.IsAssignableFrom(lVal.Type))
+                        rVal.Type = lVal.Type;
+                    else if (lVal.Type.IsAssignableFrom(rVal.Type))
+                        lVal.Type = rVal.Type;
                 }
             }
+            return this;
         }
 
         public override bool Enumerate(IEnumerator enumerator)
@@ -139,7 +134,34 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class Equals : Binary
+    public abstract class Compare : Binary
+    {
+        public override Item Translate(IExpressionTranslator translator)
+        {
+            base.Translate(translator);
+            if (Left == null || Right == null)
+                return null;
+            return this;
+        }
+    }
+
+    public abstract class Logical : Binary
+    {
+        public override Item Translate(IExpressionTranslator translator)
+        {
+            var ret = base.Translate(translator);
+            if (Left == null && Right == null)
+                return null;
+            else if (Left == null && Right != null)
+                return Right;
+            else if (Left != null && Right == null)
+                return Left;
+            else
+                return this;
+        }
+    }
+
+    public class Equals : Compare
     {
         public override string ToString()
         {
@@ -153,7 +175,7 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class NotEquals : Binary
+    public class NotEquals : Compare
     {
         public override string ToString()
         {
@@ -167,7 +189,7 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class And : Binary
+    public class And : Logical
     {
         public override string ToString()
         {
@@ -181,7 +203,7 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class Or : Binary
+    public class Or : Logical
     {
         public override string ToString()
         {
@@ -246,16 +268,17 @@ namespace Archer.DataSecurity.Filter
             return Expression.NewArrayInit(Type, _items.Select(a => a.ToLinq(ctx)));
         }
 
-        public override void Translate(IExpressionTranslator translator)
+        public override Item Translate(IExpressionTranslator translator)
         {
             if (translator == null)
-                return;
+                return this;
             var newCol = new Collection<ValueOrReference>();
             foreach (var item in _items)
             {
-                newCol.Add(translator.Translate(item) as ValueOrReference);
+                newCol.Add(item.Translate(translator) as ValueOrReference);
             }
             _items = newCol;
+            return this;
         }
 
         public override bool Enumerate(IEnumerator enumerator)
@@ -271,7 +294,7 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class In : Binary
+    public class In : Compare
     {
         public override string ToString()
         {
@@ -290,7 +313,7 @@ namespace Archer.DataSecurity.Filter
         }
     }
 
-    public class NotIn : Binary
+    public class NotIn : Compare
     {
         public override string ToString()
         {
@@ -324,9 +347,11 @@ namespace Archer.DataSecurity.Filter
             Type = type;
         }
 
-        public override void Translate(IExpressionTranslator translator)
+        public override Item Translate(IExpressionTranslator translator)
         {
-            // Value and Reference must not be translated by itself!
+            if (translator == null)
+                return this;
+            return translator.Translate(this);
         }
     }
 

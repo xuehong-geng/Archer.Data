@@ -15,11 +15,21 @@ namespace Archer.DataSecurity.Service
     {
         private DomainTypeMap _map;
         private Type _entityType;
+        private bool _removeNotExistFields = false;
 
         public DomainFilterTranslator(DomainTypeMap map, Type entityType)
         {
             _map = map;
             _entityType = entityType;
+        }
+
+        /// <summary>
+        /// Whether allow the translator remove not existing fields instead of throw exception
+        /// </summary>
+        public bool RemoveNotExistFields
+        {
+            get { return _removeNotExistFields; }
+            set { _removeNotExistFields = value; }
         }
 
         public Item Translate(Item item)
@@ -28,13 +38,28 @@ namespace Archer.DataSecurity.Service
                 throw new ArgumentNullException(nameof(item));
             if (item is Variable)
             {   // Variables must be translated to reference of entity fields
-                var v = item as Variable;
-                var propInfo = _map.GetMappedProperty(v.Name, _entityType);
-                return new Variable(propInfo.PropertyType, propInfo.Name);
+                try
+                {
+                    var v = item as Variable;
+                    var propInfo = _map.GetMappedProperty(v.Name, _entityType);
+                    return new Variable(propInfo.PropertyType, propInfo.Name);
+                }
+                catch(DomainFieldNotExistException notExistErr)
+                {
+                    if (_removeNotExistFields)
+                    {   // The field not exist and could be removed from filter expression
+                        return null; // Returns null will make the expression remove it
+                    }
+                    else
+                    {   // Cannot remove the field, throw exception to disable this expression
+                        throw notExistErr;
+                    }
+                }
             }
             return item;
         }
     }
+
     /// <summary>
     /// domain权限维护
     /// </summary>
@@ -106,6 +131,7 @@ namespace Archer.DataSecurity.Service
                     try
                     {
                         var exp = Parser.ParseExpression(rule.Filter);
+                        translator.RemoveNotExistFields = rule.CanRemoveNotExistFields;
                         exp.Translate(translator);
                         acceptRules.Add(exp);
                     }
@@ -196,6 +222,7 @@ namespace Archer.DataSecurity.Service
                     try
                     {
                         var exp = Parser.ParseExpression(rule.Filter);
+                        translator.RemoveNotExistFields = rule.CanRemoveNotExistFields;
                         exp.Translate(translator);
                         acceptRules.Add(exp);
                     }

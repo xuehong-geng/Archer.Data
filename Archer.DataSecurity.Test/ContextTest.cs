@@ -98,7 +98,8 @@ namespace Archer.DataSecurity.Test
         {
             new DomainType { DomainTypeID = "Sex", DomainTypeName = "性别" },
             new DomainType { DomainTypeID = "Course", DomainTypeName = "科目"},
-            new DomainType { DomainTypeID = "Score", DomainTypeName = "成绩"}
+            new DomainType { DomainTypeID = "Score", DomainTypeName = "成绩"},
+            new DomainType { DomainTypeID = "Dummy", DomainTypeName = "Dummy" }
         };
 
         protected static DomainTypeEntityMap[] DomainTypeMaps = new[]
@@ -108,15 +109,16 @@ namespace Archer.DataSecurity.Test
 
         protected static AccessRule[] AccessRules = new[]
         {
-            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null " },
-            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male' " },
-            new AccessRule { AccessRuleID = "Sex_Male_Math_Read", AccessRuleName = "查询男性数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Sex == 'Male' && Course == '数学'" },
-            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female' " },
-            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' " },
-            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' " },
-            new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] " },
-            new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] " },
-            new AccessRule { AccessRuleID = "Course_NotAll", AccessRuleName = "全部不存在的字段", AccessType = AccessType.FullAccess, Filter = "ID!='0' && SupplierCode!='0' && ProdCataCode!='0'" }
+            new AccessRule { AccessRuleID = "Sex_All_All", AccessRuleName = "操作所有性别相关数据", AccessType = AccessType.FullAccess, Filter = "Sex != null ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Sex_Male_All", AccessRuleName = "操作男性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Male' ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Sex_Male_Math_Read", AccessRuleName = "查询男性数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Sex == 'Male' && Course == '数学'", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Sex_Female_All", AccessRuleName = "操作女性相关数据", AccessType = AccessType.FullAccess, Filter = "Sex == 'Female' ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Course_Math_Read", AccessRuleName = "查询数学相关数据", AccessType = AccessType.ReadOnly, Filter = "Course == '数学' ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Course_YUWEN_All", AccessRuleName = "操作语文相关数据", AccessType = AccessType.FullAccess, Filter = "Course == '语文' ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] ", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "Course_NotAll", AccessRuleName = "全部不存在的字段", AccessType = AccessType.FullAccess, Filter = "ID!='0' && SupplierCode!='0' && ProdCataCode!='0'", CanRemoveNotExistFields = false },
+            new AccessRule { AccessRuleID = "All_With_Dummy", AccessRuleName = "包含无用字段", AccessType = AccessType.FullAccess, Filter = "(Sex == 'Mail' && Dummy == 't') || (Sex == 'Femal' && Dummy == 'a') && (Dummy == 'k' || Course == '数学') ", CanRemoveNotExistFields = true }
        };
 
         protected void PrepareTestData()
@@ -351,6 +353,20 @@ namespace Archer.DataSecurity.Test
             // Clear test data
             ClearDomainRules();
             ClearTestData();
+        }
+
+        [TestMethod]
+        public void TestRemoveNotExistFields()
+        {
+            DataSecurityManager.InitializeDefaultManager("test");
+            // Prepare test data
+            PrepareTestData();
+            PrepareDomainRules();
+            var db = new SchoolDbContext("test");
+            var mgr = new DataSecurityManager("test");
+            mgr.AddRoleConstraint("Admin", "All_With_Dummy");
+            var rule = mgr.GetFilterExpressionForRole<Student>("Admin", AccessType.FullAccess);
+            Console.WriteLine(rule.ToString());
         }
     }
 }

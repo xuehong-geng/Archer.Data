@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using Archer.DataSecurity.Filter;
+using System.ComponentModel;
 
 namespace Archer.DataSecurity.Model
 {
@@ -45,6 +46,11 @@ namespace Archer.DataSecurity.Model
         /// 对数据的过滤条件，相当于where的查询条件表达式。条件的字段名是domaintype的Name
         /// </summary>
         public string Filter { get; set; }
+        /// <summary>
+        /// 是否允许从过滤条件中自动移除哪些不存在对应实体类中的DomainType
+        /// </summary>
+        [DefaultValue(false)]
+        public bool CanRemoveNotExistFields { get; set; }
         /// <summary> 
         /// 数据的访问规则类型，是针对人，角色，组织之类的
         /// 限制规则，告诉系统，针对那个类型生效

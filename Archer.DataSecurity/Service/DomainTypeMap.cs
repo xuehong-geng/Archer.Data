@@ -8,6 +8,32 @@ using Archer.DataSecurity.Store;
 
 namespace Archer.DataSecurity.Service
 {
+    public class DomainFieldNotExistException : ApplicationException
+    {
+        private string _domainType;
+        private string _fieldName;
+        private string _entityType;
+
+        public DomainFieldNotExistException(string domainType, string fieldName, string entityType)
+        {
+            _domainType = domainType;
+            _fieldName = fieldName;
+            _entityType = entityType;
+        }
+
+        public string DomainType { get { return _domainType; } }
+        public string FieldName { get { return _fieldName; } }
+        public string EntityType { get { return _entityType; } }
+
+        public override string Message
+        {
+            get
+            {
+                return string.Format("Filed {0} that corresponding to DomainType {1} not exist in entity {2}!", _fieldName, _domainType, _entityType);
+            }
+        }
+    }
+
     public class DomainTypeMap
     {
         private class Entry
@@ -44,8 +70,7 @@ namespace Archer.DataSecurity.Service
                 var propName = map == null ? domainType.DomainTypeID : map.FieldName;
                 var propInfo = entityType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
                 if (propInfo == null)
-                    throw new InvalidOperationException(String.Format("Property {0} is not in Entity {1}!", propName,
-                        entityType.FullName));
+                    throw new DomainFieldNotExistException(domainType.DomainTypeName, propName, entityType.FullName);
                 return propInfo;
             }
         }
