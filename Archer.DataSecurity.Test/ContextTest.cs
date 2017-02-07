@@ -118,7 +118,7 @@ namespace Archer.DataSecurity.Test
             new AccessRule { AccessRuleID = "Course_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course in ['语文','历史'] ", CanRemoveNotExistFields = false },
             new AccessRule { AccessRuleID = "Course_Not_Yuwen_Lishi", AccessRuleName = "操作语文和历史数据", AccessType = AccessType.FullAccess, Filter = "Course not in ['语文','历史'] ", CanRemoveNotExistFields = false },
             new AccessRule { AccessRuleID = "Course_NotAll", AccessRuleName = "全部不存在的字段", AccessType = AccessType.FullAccess, Filter = "ID!='0' && SupplierCode!='0' && ProdCataCode!='0'", CanRemoveNotExistFields = false },
-            new AccessRule { AccessRuleID = "All_With_Dummy", AccessRuleName = "包含无用字段", AccessType = AccessType.FullAccess, Filter = "(Sex == 'Mail' && Dummy == 't') || (Sex == 'Femal' && Dummy == 'a') && (Dummy == 'k' || Course == '数学') ", CanRemoveNotExistFields = true }
+            new AccessRule { AccessRuleID = "All_With_Dummy", AccessRuleName = "包含无用字段", AccessType = AccessType.FullAccess, Filter = "Dummy == 'T' && Sex != 'Female' && Course == '语文'", CanRemoveNotExistFields = true }
        };
 
         protected void PrepareTestData()
