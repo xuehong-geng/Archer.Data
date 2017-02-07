@@ -223,8 +223,8 @@ namespace Archer.DataSecurity.Service
                     {
                         var exp = Parser.ParseExpression(rule.Filter);
                         translator.RemoveNotExistFields = rule.CanRemoveNotExistFields;
-                        exp.Translate(translator);
-                        acceptRules.Add(exp);
+                        var translated = exp.Translate(translator);
+                        acceptRules.Add(translated);
                     }
                     catch (Exception err)
                     {
